@@ -1,6 +1,6 @@
 # lytecache-cli
 
-A command-line tool for inspecting and manipulating [lytecache](https://github.com/lytecache/lytecache-go) database files -- like `redis-cli`, but for a file instead of a server. It's built entirely on the [lytecache-go](https://github.com/lytecache/lytecache-go) library's public API (no duplicated cache logic), so anything a Go program can do to a cache file, this CLI can do from a shell or a script.
+A command-line tool for inspecting and manipulating [lytecache](https://github.com/lytecache/lytecache-go) database files — think `redis-cli`, but for a file instead of a server. It's built entirely on the [lytecache-go](https://github.com/lytecache/lytecache-go) library's public API, with no cache logic duplicated here, so anything a Go program can do to a cache file, this CLI can do from a shell or a script.
 
 ## Install
 
@@ -23,7 +23,7 @@ A winget manifest is attached to each [GitHub release](https://github.com/lyteca
 go install github.com/lytecache/lytecache-cli/cmd/lytecache@latest
 ```
 
-**Manual download:** grab the archive for your OS/arch from the [latest release](https://github.com/lytecache/lytecache-cli/releases/latest) -- each comes with a `checksums.txt`. Linux users can instead use the `.deb`/`.rpm` package from the same release.
+**Manual download:** grab the archive for your OS/arch from the [latest release](https://github.com/lytecache/lytecache-cli/releases/latest); each one comes with a `checksums.txt`. Linux users can use the `.deb`/`.rpm` package from the same release instead.
 
 ## A session
 
@@ -53,7 +53,7 @@ lytecache (cache.db | ns: default)> get user:42
 lytecache (cache.db | ns: default)> exit
 ```
 
-Every command works identically whether you run it one-shot (as above, script-friendly) or type it at the REPL prompt -- the REPL is just a loop around the same command tree, sharing one already-open connection for the whole session instead of reopening the file per line. Command names are case-insensitive in the REPL (`GET`/`get` both work); Ctrl-C cancels the current line, Ctrl-D or `quit`/`exit` leaves.
+Every command works the same whether you run it one-shot, as above, or type it at the REPL prompt. The REPL is really just a loop around the same command tree, and it keeps one connection open for the whole session instead of reopening the file for every line. Command names are case-insensitive there too (`GET` and `get` both work), Ctrl-C cancels whatever you've typed so far without exiting, and Ctrl-D or `quit`/`exit` leaves.
 
 ## Commands
 
@@ -74,7 +74,7 @@ Every command works identically whether you run it one-shot (as above, script-fr
 | `maintain` | Run one maintenance pass (expire sweep + eviction); prints what it removed. |
 | `vacuum` | Reclaim disk space; prints size before/after. |
 | `which` | Print the resolved database path and whether it exists. |
-| `dump <key>` | Raw row metadata: value type code/name, timestamps, sizes -- the debugging view. |
+| `dump <key>` | Raw row metadata: value type code/name, timestamps, sizes. The view you reach for when debugging. |
 | `watch [interval]` | Redraw `stats` every `interval` seconds (default 2) until Ctrl-C. |
 
 Global flags: `--db <path>`, `--namespace <name>` (default `default`), `--quiet` (suppress decoration), `--version`.
@@ -85,11 +85,11 @@ Every command resolves which file to open in this order:
 
 1. `--db <path>` flag
 2. `LYTECACHE_PATH` environment variable
-3. the library's own default (`lytecache.DefaultPath()` -- see [lytecache-go's README](https://github.com/lytecache/lytecache-go#where-is-my-data))
+3. the library's own default, `lytecache.DefaultPath()` (see [lytecache-go's README](https://github.com/lytecache/lytecache-go#where-is-my-data) for how that's derived)
 
-In interactive mode, the resolved path is printed to stderr on startup (and `lytecache which` reports it standalone in either mode). Read-only commands (`get`, `keys`, `stats`, ...) fail with the resolved path in the error message if the file doesn't exist; write commands (`set`, `incr`, ...) create it, matching the library's own behavior.
+In interactive mode, the resolved path is printed to stderr on startup, and `lytecache which` reports it standalone in either mode. Read-only commands like `get`, `keys`, and `stats` fail with the resolved path in the error message if the file doesn't exist. Write commands like `set` and `incr` create it instead, matching how the library itself behaves.
 
-One-shot commands open the database, do exactly one thing, and close it again -- they never hold a connection open longer than necessary, so it's safe to run `lytecache get`/`keys`/`stats`/`dump` against a file a live application has open at the same time (WAL mode makes concurrent readers safe).
+One-shot commands open the database, do exactly one thing, and close it again. They never hold a connection open longer than necessary, which is what makes it safe to run `lytecache get`, `keys`, `stats`, or `dump` against a file a live application already has open — WAL mode handles the concurrent reads safely.
 
 ## Exit codes
 
@@ -108,11 +108,11 @@ if lytecache exists session:abc >/dev/null; then
 fi
 ```
 
-Values are always written to stdout and diagnostics to stderr, so `lytecache get key | jq .` works; `--quiet` suppresses banners/prompts/confirmations, and `NO_COLOR` is respected.
+Values always go to stdout and diagnostics to stderr, so `lytecache get key | jq .` just works. `--quiet` suppresses banners, prompts, and confirmations, and `NO_COLOR` is respected too.
 
 ## Cross-language party trick
 
-Since every lytecache implementation shares one on-disk format (see [SPEC.md](https://github.com/lytecache/lytecache-go/blob/main/SPEC.md)), this CLI can inspect a cache file written by a different language entirely. A Python process wrote this:
+Every lytecache implementation shares one on-disk format (see [SPEC.md](https://github.com/lytecache/lytecache-go/blob/main/SPEC.md)), so this CLI can inspect a cache file written by a completely different language. Say a Python process wrote this:
 
 ```python
 cache.set("config", {"theme": "dark", "timeout": 30})
@@ -134,11 +134,11 @@ access_count:   1
 expires_at:     (none)
 ```
 
-No Python installation, no shared server, no export step -- just the same SQLite file on disk. Type codes 5 (Python pickle) and 6 (Java serialized) -- values this CLI cannot decode -- render as `(non-portable value: python-pickle, N bytes)` rather than erroring or dumping garbage.
+No Python installation, no shared server, no export step: just the same SQLite file on disk. The two type codes this CLI can't decode — 5 for Python pickle, 6 for Java serialization — render as `(non-portable value: python-pickle, N bytes)` instead of erroring out or dumping garbage.
 
 ## Relationship to lytecache-go
 
-This repo contains only the CLI (`cmd/lytecache`) and depends on [`github.com/lytecache/lytecache-go`](https://github.com/lytecache/lytecache-go) like any other consumer -- it has no access to, and does not duplicate, any of that module's unexported cache logic. See that repo for the Go library itself, the on-disk format (`SPEC.md`), and language-agnostic background on lytecache.
+This repo contains only the CLI (`cmd/lytecache`) and depends on [`github.com/lytecache/lytecache-go`](https://github.com/lytecache/lytecache-go) like any other consumer. It has no special access to that module's unexported cache logic, and doesn't duplicate any of it. See that repo for the Go library itself, the on-disk format (`SPEC.md`), and general background on lytecache.
 
 ## License
 

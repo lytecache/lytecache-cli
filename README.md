@@ -28,10 +28,10 @@ go install github.com/lytecache/lytecache-cli/cmd/lytecache@latest
 ## A session
 
 ```console
-$ lytecache set user:42 '{"name":"Ada"}'
+$ lytecache set user:42 '{"name":"Samson"}'
 $ lytecache get user:42
 {
-  "name": "Ada"
+  "name": "Samson"
 }
 $ lytecache incr hits
 1
@@ -48,7 +48,7 @@ size:            15 bytes
 $ lytecache            # no args -> interactive REPL
 lytecache (cache.db | ns: default)> get user:42
 {
-  "name": "Ada"
+  "name": "Samson"
 }
 lytecache (cache.db | ns: default)> exit
 ```

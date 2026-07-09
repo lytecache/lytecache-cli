@@ -13,4 +13,4 @@ Initial release. A `redis-cli`-style command-line tool for lytecache database fi
 - Value type handling: JSON pretty-printing, `--raw` for exact bytes, base64/`--file`/stdin for `--type bytes`, and a graceful `(non-portable value: ...)` message for Python-pickle/Java-serialized values this CLI cannot decode.
 - Distribution: `go install`, Homebrew tap, Scoop bucket, winget manifest (attached to releases pending `microsoft/winget-pkgs` submission), `.deb`/`.rpm` packages, and a checksum-verifying `install.sh`.
 
-Depends on `lytecache-go` v0.3.0+ (for `Cache.Inspect` and `Cache.Maintain` -- see that repo's changelog).
+Depends on `lytecache-go` v0.2.0+ (for `Cache.Inspect` and `Cache.Maintain` -- see that repo's changelog).

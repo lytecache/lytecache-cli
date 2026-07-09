@@ -1,0 +1,146 @@
+version: 2
+
+# This file lives at the root of the split lytecache-cli repo (see
+# lytecache-cli-release.yml in the monorepo's .github/workflows/ for how
+# lytecache-cli/ gets split out via git subtree and released from there) --
+# so every path here is relative to this repo's own root, exactly like go.mod.
+
+project_name: lytecache
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: lytecache
+    main: ./cmd/lytecache
+    binary: lytecache
+    # modernc.org/sqlite is a pure-Go SQLite driver (no cgo), which is what
+    # makes cross-compiling every OS/arch below possible from one ubuntu-latest
+    # runner without a cross-compiler toolchain or Docker.
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  - id: lytecache
+    ids: [lytecache]
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE*
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# Linux system packages: `apt install ./lytecache_*.deb` / `rpm -i lytecache_*.rpm`,
+# for users who'd rather manage the CLI through their distro's package manager
+# than install.sh or a raw binary. These are attached to the GitHub release
+# as ordinary assets alongside the archives, automatically.
+nfpms:
+  - id: lytecache
+    ids: [lytecache]
+    package_name: lytecache
+    vendor: lytecache
+    homepage: https://lytecache.github.io/lytecache
+    maintainer: lytecache maintainers <iilemobayosamson@gmail.com>
+    description: >-
+      Command-line tool for interacting with lytecache database files.
+    license: Apache-2.0
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+
+# Homebrew tap: `brew install lytecache/tap/lytecache`. As of GoReleaser
+# v2.10, `homebrew_casks` (not the older `brews`/Formula mechanism) is the
+# supported way to ship a prebuilt binary -- Formulas are meant to build
+# something from source, which GoReleaser's old `brews` never actually did.
+# The end-user command (`brew install org/tap/name`) is unchanged either way.
+homebrew_casks:
+  - name: lytecache
+    ids: [lytecache]
+    repository:
+      owner: lytecache
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://lytecache.github.io/lytecache
+    description: Command-line tool for interacting with lytecache database files.
+    license: Apache-2.0
+    binaries: [lytecache]
+
+# Scoop bucket (Windows): `scoop bucket add lytecache https://github.com/lytecache/scoop-bucket`
+# then `scoop install lytecache`.
+scoops:
+  - name: lytecache
+    ids: [lytecache]
+    repository:
+      owner: lytecache
+      name: scoop-bucket
+      branch: main
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+    homepage: https://lytecache.github.io/lytecache
+    description: Command-line tool for interacting with lytecache database files.
+    license: Apache-2.0
+
+# Winget manifest: generated and attached to the GitHub release as a plain
+# asset (skip_upload: true) rather than pushed straight to
+# microsoft/winget-pkgs -- that repo requires each new package (and every
+# version) to go through their own PR review, which isn't something CI
+# should do unattended for a package this new. See RELEASING.md for the
+# manual submission step once the CLI has a track record.
+winget:
+  - name: lytecache
+    ids: [lytecache]
+    publisher: lytecache
+    short_description: Command-line tool for interacting with lytecache database files.
+    license: Apache-2.0
+    homepage: https://lytecache.github.io/lytecache
+    package_identifier: lytecache.lytecache
+    skip_upload: true
+    # Never actually pushed to (skip_upload above), so this is a nominal
+    # target only -- required by schema validation, not used at runtime.
+    repository:
+      owner: lytecache
+      name: winget-pkgs
+      branch: main
+
+release:
+  github:
+    owner: lytecache
+    name: lytecache-cli
+  extra_files:
+    - glob: ./dist/winget/manifests/**/*.yaml
+  name_template: "lytecache-cli {{ .Tag }}"
+  header: |
+    ## lytecache-cli {{ .Tag }}
+
+    See [README.md](https://github.com/lytecache/lytecache-cli/blob/{{ .Tag }}/README.md) for
+    install options, usage, and exit codes, and
+    [lytecache-go's SPEC.md](https://github.com/lytecache/lytecache-go/blob/main/SPEC.md) for the
+    underlying storage format this CLI reads and writes.
+
+changelog:
+  disable: true # CHANGELOG.md is maintained by hand; see that file instead.

@@ -131,6 +131,11 @@ release:
   github:
     owner: lytecache
     name: lytecache-cli
+  # Makes a re-run after a partial failure (e.g. an unrelated step failing
+  # after assets already uploaded) idempotent: without this, re-uploading to
+  # a release that already has those assets fails hard with a 422
+  # "already_exists" for every single file, instead of just replacing them.
+  replace_existing_artifacts: true
   extra_files:
     - glob: ./dist/winget/manifests/**/*.yaml
   name_template: "lytecache-cli {{ .Tag }}"

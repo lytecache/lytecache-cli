@@ -1,0 +1,81 @@
+# syntax=docker/dockerfile:1
+#
+# lytecache is an embedded caching *library*, not a server -- this image
+# packages only the `lytecache` CLI (see cmd/lytecache), a tool for
+# inspecting and manipulating lytecache SQLite files from a shell or a
+# script. It runs one command and exits; there is no daemon, no listener,
+# no long-running process, by design (see SPEC.md / README.md).
+#
+# Build:
+#   docker build -f Dockerfile.cli -t lytecache:test --build-arg VERSION=test .
+# Multi-arch (what CI actually does):
+#   docker buildx build -f Dockerfile.cli --platform linux/amd64,linux/arm64 .
+
+# ---------------------------------------------------------------------------
+# Build stage
+# ---------------------------------------------------------------------------
+FROM golang:1.25.0-alpine AS build
+
+WORKDIR /src
+
+# Dependency layer first, so editing source code never invalidates the
+# (much slower) module download layer.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ARG VERSION=dev
+ARG TARGETOS
+ARG TARGETARCH
+
+# CGO_ENABLED=0 works here specifically because the only storage backend is
+# modernc.org/sqlite, a pure-Go SQLite driver -- there is no cgo-based
+# dependency anywhere in this module to disable. TARGETOS/TARGETARCH are
+# populated automatically by buildx per requested --platform.
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION}" \
+    -o /lytecache \
+    ./cmd/lytecache
+
+# scratch has no shell to `mkdir`/`chown` with, so the cache directory is
+# created and owned here, then copied into the final stage as a ready-made,
+# correctly-owned empty directory (see the runtime stage below).
+RUN mkdir -p /var/cache/lytecache && chown 65532:65532 /var/cache/lytecache
+
+# ---------------------------------------------------------------------------
+# Runtime stage -- scratch: no shell, no package manager, no libc, nothing
+# but the one static binary this image exists to ship.
+# ---------------------------------------------------------------------------
+FROM scratch
+
+ARG VERSION=dev
+
+LABEL org.opencontainers.image.title="lytecache" \
+      org.opencontainers.image.description="CLI for lytecache -- Redis-like caching with zero infrastructure" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/lytecache/lytecache-cli" \
+      org.opencontainers.image.version="${VERSION}"
+
+COPY --from=build /lytecache /lytecache
+COPY --from=build --chown=65532:65532 /var/cache/lytecache /var/cache/lytecache
+
+# Matches the convention used by application containers in this project: the
+# cache lives in a directory meant to be mounted as a volume, with an env
+# var naming the actual file inside it. A user who mounts their app's cache
+# volume at the same path needs no --db flag at all -- the CLI resolves
+# LYTECACHE_PATH exactly the way the libraries do.
+ENV LYTECACHE_PATH=/var/cache/lytecache/cache.db
+VOLUME ["/var/cache/lytecache"]
+
+# Numeric UID:GID -- scratch has no /etc/passwd for a named user to resolve
+# against.
+USER 65532:65532
+
+ENTRYPOINT ["/lytecache"]
+# Deliberately no default CMD: the binary's own no-args behavior is to open
+# the interactive REPL (exactly like running `lytecache` locally), and a
+# default CMD would silently override that for every bare `docker run
+# <image>` invocation -- `docker run <image> --help`/`--version`/any
+# subcommand still work by passing them as args, same as the native binary.

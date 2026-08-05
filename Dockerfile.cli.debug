@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1
+#
+# Debug/alternative variant of Dockerfile.cli: same static binary, but on
+# gcr.io/distroless/static-debian12:nonroot instead of scratch. Slightly
+# larger, but ships CA certificates and a real (numeric) passwd/group entry
+# for the nonroot user -- useful if your tooling shells out expecting those
+# to exist. scratch (Dockerfile.cli) remains the default; use this image
+# only if you specifically need what distroless/static adds over scratch.
+#
+# Build:
+#   docker build -f Dockerfile.cli.debug -t lytecache:debug --build-arg VERSION=test .
+
+FROM golang:1.25.0-alpine AS build
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ARG VERSION=dev
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath \
+    -ldflags="-s -w -X main.version=${VERSION}" \
+    -o /lytecache \
+    ./cmd/lytecache
+
+RUN mkdir -p /var/cache/lytecache && chown 65532:65532 /var/cache/lytecache
+
+# distroless/static-debian12:nonroot already runs as a real, resolvable
+# 65532:65532 (user "nonroot") with a passwd/group entry, unlike scratch --
+# COPY --chown here is still correct/explicit rather than relying on that.
+FROM gcr.io/distroless/static-debian12:nonroot
+
+ARG VERSION=dev
+
+LABEL org.opencontainers.image.title="lytecache" \
+      org.opencontainers.image.description="CLI for lytecache -- Redis-like caching with zero infrastructure (distroless debug variant)" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/lytecache/lytecache-cli" \
+      org.opencontainers.image.version="${VERSION}"
+
+COPY --from=build /lytecache /lytecache
+COPY --from=build --chown=65532:65532 /var/cache/lytecache /var/cache/lytecache
+
+ENV LYTECACHE_PATH=/var/cache/lytecache/cache.db
+VOLUME ["/var/cache/lytecache"]
+
+USER 65532:65532
+
+ENTRYPOINT ["/lytecache"]
+# See Dockerfile.cli's comment: no default CMD, so bare `docker run <image>`
+# matches the binary's own no-args behavior (opens the REPL) instead of
+# silently overriding it.

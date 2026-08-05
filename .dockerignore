@@ -1,0 +1,30 @@
+# Keep the build context small and make sure a developer's local cache file
+# never ends up baked into an image layer.
+.git
+.github
+
+# Local/dev cache artifacts -- these are exactly what this CLI operates on,
+# so it's especially important none of them ever leak into a build context.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+tmp/
+test-tmp/
+
+# Build/release output, not inputs.
+dist/
+lytecache
+*.tar.gz
+*.zip
+
+# Editor/OS cruft.
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docs/metadata that don't affect the build.
+*.md
+LICENSE
+examples/

@@ -4,9 +4,6 @@ go 1.25.0
 
 require (
 	github.com/chzyer/readline v1.5.1
-	// The lytecache-go monorepo tag lytecache-go/v0.2.0 hasn't actually been
-	// split/pushed to the standalone repo yet (see RELEASING.md) -- once it
-	// has, this resolves for real and the replace below can be dropped.
 	github.com/lytecache/lytecache-go v0.2.0
 	github.com/spf13/cobra v1.10.2
 )
@@ -25,11 +22,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.53.0 // indirect
 )
-
-// Local development only: lytecache-go lives in the sibling directory of this
-// monorepo. Remove this line once v0.2.0 has actually been split/pushed to
-// the standalone github.com/lytecache/lytecache-go repo (see RELEASING.md)
-// -- until then, the `require` version above is not fetchable from the
-// proxy, and this replace is what makes `go build`/`go test` work against
-// the real, current source instead.
-replace github.com/lytecache/lytecache-go => ../lytecache-go

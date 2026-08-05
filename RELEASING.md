@@ -39,6 +39,18 @@ That's the entire one-time setup -- everything else happens automatically from a
    - runs GoReleaser, which builds binaries for linux/darwin (amd64/arm64), packages them as `.tar.gz`/`.zip` with SHA-256 checksums, builds `.deb`/`.rpm` packages, generates a winget manifest, and publishes all of it as GitHub release assets on `lytecache/lytecache-cli` -- plus opens/updates the Homebrew cask in `lytecache/homebrew-tap` and the Scoop manifest in `lytecache/scoop-bucket`.
 7. Verify: `go install github.com/lytecache/lytecache-cli/cmd/lytecache@latest` and `brew install lytecache/tap/lytecache` both resolve to the new version.
 
+## Docker image
+
+The same `lytecache-cli/vX.Y.Z` tag also triggers `.github/workflows/docker.yml` (a separate, independent workflow from `lytecache-cli-release.yml` above). Unlike GoReleaser, it needs no split/standalone-repo checkout: it builds straight from `lytecache-cli/` in the monorepo checkout using [`Dockerfile.cli`](Dockerfile.cli), since a plain `docker build` has no git-tag-based versioning of its own to worry about -- `VERSION` is just passed in as a build arg (the `lytecache-cli/` prefix stripped the same way the release workflow strips it).
+
+It publishes a multi-arch (`linux/amd64`, `linux/arm64`) image to `ghcr.io/lytecache/lytecache`, tagged with the full version, `major.minor`, `major`, and `latest`, plus a signed build provenance attestation. No new secrets are needed beyond the ambient `GITHUB_TOKEN` (unlike the fine-grained PATs above, which exist specifically because those pushes target a *different* repo than the one the workflow runs in -- GHCR publishing authenticates against packages on this same workflow's own repo).
+
+**One-time, after the very first publish:** GitHub Container Registry packages are created **private** by default, including on their first push. Go to the package's page on GitHub (org -> Packages -> lytecache) -> Package settings -> Change visibility -> Public. Until this is done, `docker pull ghcr.io/lytecache/lytecache` 404s for anyone without access to the private package -- this has bitten more than one project's first release, so don't skip it.
+
+Every PR touching `lytecache-cli/` also runs a `validate` job in the same workflow (build both platforms, no push, then `scripts/test-docker-image.sh` against the amd64 build) -- a broken Dockerfile fails review, not release.
+
+See the [README's Docker section](README.md#docker) for how the image is meant to be used, and [Dockerfile.cli](Dockerfile.cli)'s own comments for why it's built the way it is.
+
 ## Submitting to `microsoft/winget-pkgs`
 
 The release workflow generates a winget manifest and attaches it to the GitHub release as a plain asset (`skip_upload: true` in `.goreleaser.yaml`) rather than opening a PR against `microsoft/winget-pkgs` automatically -- that repo requires human review for every new package and every version, which isn't something CI should do unattended for a package this new.

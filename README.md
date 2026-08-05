@@ -140,6 +140,98 @@ No Python installation, no shared server, no export step: just the same SQLite f
 
 This repo contains only the CLI (`cmd/lytecache`) and depends on [`github.com/lytecache/lytecache-go`](https://github.com/lytecache/lytecache-go) like any other consumer. It has no special access to that module's unexported cache logic, and doesn't duplicate any of it. See that repo for the Go library itself, the on-disk format (`SPEC.md`), and general background on lytecache.
 
+## Docker
+
+`lytecache` — just the CLI, packaged as a container — is published as a multi-arch image at `ghcr.io/lytecache/lytecache`. This is **not** a server image: the container runs one command and exits, exactly like the native binary. There's no listener, no daemon, no healthcheck that assumes a long-running process, because lytecache itself isn't a server — see the main [README](https://github.com/lytecache/lytecache-go#readme) if that's surprising.
+
+### The primary pattern: inspecting an app's live cache
+
+Mount the same volume your application mounts at `/var/cache/lytecache`, and set `LYTECACHE_PATH` to the same value the app uses. The CLI then needs no `--db` flag at all — it resolves `LYTECACHE_PATH` exactly the way the libraries do:
+
+```bash
+docker run --rm \
+  -v myapp-cache:/var/cache/lytecache \
+  -e LYTECACHE_PATH=/var/cache/lytecache/cache.db \
+  ghcr.io/lytecache/lytecache:latest stats
+```
+
+### Adding it to your own `docker-compose.yml`
+
+Add a service like this one alongside whatever service already runs your app — this is the whole thing, not an excerpt:
+
+```yaml
+services:
+  # ... your existing app service, however it's defined ...
+
+  lytecache-cli:
+    image: ghcr.io/lytecache/lytecache:latest
+    profiles: ["tools"]     # keeps it out of `docker compose up` — see below
+    environment:
+      LYTECACHE_PATH: /var/cache/lytecache/cache.db   # same value your app sets
+    volumes:
+      - lytecache-data:/var/cache/lytecache            # same volume your app mounts
+
+volumes:
+  lytecache-data:   # omit this if your app's compose file already declares it
+```
+
+The two things that make `--db` unnecessary are: the `lytecache-cli` service's `volumes:` entry names the **same volume** your app service mounts (whatever your app calls it — `lytecache-data` above is just this example's name), and its `LYTECACHE_PATH` is set to the **same path** your app uses. Get those two matching and every command below just works:
+
+```bash
+docker compose run --rm lytecache-cli stats
+docker compose run --rm lytecache-cli keys 'session:*'
+docker compose run --rm lytecache-cli          # interactive REPL
+```
+
+(See [`examples/docker-compose.yml`](examples/docker-compose.yml) for this same service in the context of a complete, runnable file, including the illustrative `app` service.)
+
+Mount the volume on the **directory**, never on the `.db` file itself: WAL mode creates `cache.db-wal` and `cache.db-shm` beside `cache.db`, and a file-level mount would only ever see the one file it names.
+
+WAL mode is also what makes this safe to run *while the app is live* — reading with the CLI never blocks, and never gets blocked by, the app's own reads or writes.
+
+### One-liners
+
+Inspect an arbitrary file on the host with `--db`:
+
+```bash
+docker run --rm -v "$PWD:/data" ghcr.io/lytecache/lytecache:latest --db /data/cache.db get some-key
+```
+
+Open the interactive REPL against a mounted volume (bare `docker run` with no trailing args opens the REPL, exactly like the native binary):
+
+```bash
+docker run --rm -it -v myapp-cache:/var/cache/lytecache ghcr.io/lytecache/lytecache:latest
+```
+
+A shell alias makes either form feel like a locally-installed binary:
+
+```bash
+alias lytecache='docker run --rm -it -v myapp-cache:/var/cache/lytecache ghcr.io/lytecache/lytecache:latest'
+lytecache stats
+```
+
+### Embedding the CLI in an application image
+
+Rather than installing Go or downloading a release archive, copy the static binary straight out of the published image in your own `Dockerfile`:
+
+```dockerfile
+COPY --from=ghcr.io/lytecache/lytecache:latest /lytecache /usr/local/bin/lytecache
+```
+
+Since the binary is fully static (`CGO_ENABLED=0`), this works regardless of your own image's base — `alpine`, `debian`, `distroless`, anything.
+
+### GHCR package visibility
+
+GitHub Container Registry packages are **private by default**, including the very first one a publish workflow creates. After the first successful publish, a maintainer must open the package's settings on GitHub and change its visibility to Public — otherwise `docker pull ghcr.io/lytecache/lytecache` returns a 404 for anyone who isn't authenticated with access to the (private) package. See [RELEASING.md](RELEASING.md).
+
+### Supported architectures and size
+
+`linux/amd64` and `linux/arm64`. The default (`scratch`-based) image is a few MB — just the static binary plus an empty, correctly-owned cache directory; nothing else is in it. A `distroless`-based variant (`Dockerfile.cli.debug`) is also built, for anyone who specifically needs CA certificates or a resolvable non-root user entry that `scratch` doesn't provide.
+
+### What this image will never be
+
+No server mode, no network listener, no multi-host shared cache. Sharing one `.db` file across multiple hosts over a network filesystem (NFS, Kubernetes `ReadWriteMany`) is unsupported — SQLite's locking depends on guarantees network filesystems don't reliably provide, so this can silently corrupt the file rather than just being slow. Keep the volume local to one host (or one node), the same way you already would for the library itself.
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).

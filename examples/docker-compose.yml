@@ -1,0 +1,38 @@
+# Example: an application using lytecache (any of the library implementations
+# in this project) alongside the lytecache CLI, both driven by the same
+# LYTECACHE_PATH env var and sharing one named volume mounted at
+# /var/cache/lytecache.
+#
+# The volume is mounted on the DIRECTORY, never on the .db file itself --
+# WAL mode creates cache.db-wal and cache.db-shm beside cache.db, and a
+# file-level bind/volume mount would only see the one file it names.
+#
+# `app` below is illustrative -- replace it with your own service (whatever
+# builds and runs the application that actually uses lytecache). The
+# `lytecache-cli` service is the useful, copy-pasteable part: it needs no
+# --db flag because it resolves LYTECACHE_PATH exactly the way the
+# libraries do.
+#
+# Usage:
+#   docker compose run --rm lytecache-cli stats
+#   docker compose run --rm lytecache-cli keys 'session:*'
+#   docker compose run --rm lytecache-cli            # interactive REPL
+
+services:
+  app:
+    build: .
+    environment:
+      LYTECACHE_PATH: /var/cache/lytecache/cache.db
+    volumes:
+      - lytecache-data:/var/cache/lytecache
+
+  lytecache-cli:
+    image: ghcr.io/lytecache/lytecache:latest
+    profiles: ["tools"] # does not start with `docker compose up`
+    environment:
+      LYTECACHE_PATH: /var/cache/lytecache/cache.db
+    volumes:
+      - lytecache-data:/var/cache/lytecache
+
+volumes:
+  lytecache-data:

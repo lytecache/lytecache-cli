@@ -206,13 +206,18 @@ func buildUIServer(logOut, logErr io.Writer, opts uiRunOptions) (*builtUIServer,
 	databases = append(databases, authCfg.Databases...)
 	databases = append(databases, opts.dbs...)
 
+	scanDirs := opts.scanDirs
+	if cacheDir, err := os.UserCacheDir(); err == nil {
+		scanDirs = defaultScanDirsIfUnconfigured(databases, scanDirs, cacheDir)
+	}
+
 	// Next to whichever config file is actually in use -- not always
 	// ui.DefaultAuditLogPath(), since --config may have overridden it.
 	auditPath := filepath.Join(filepath.Dir(configPath), "audit.log")
 
 	srv, err := ui.NewServer(ui.Config{
 		Databases:   databases,
-		ScanDirs:    opts.scanDirs,
+		ScanDirs:    scanDirs,
 		AllowDelete: opts.allowDelete,
 		Logf: func(format string, args ...any) {
 			_, _ = fmt.Fprintf(logErr, format+"\n", args...)
@@ -252,6 +257,45 @@ func buildUIServer(logOut, logErr io.Writer, opts uiRunOptions) (*builtUIServer,
 
 	built.serveTLSCert, built.serveTLSKey = opts.tlsCert, opts.tlsKey
 	return built, nil
+}
+
+// dockerSharedCacheDir is this project's own documented convention for
+// where a lytecache Docker deployment's shared cache volume gets mounted
+// -- see README.md's "Docker" section, examples/docker-compose.yml, and
+// Dockerfile.cli, which all consistently use
+// LYTECACHE_PATH=/var/cache/lytecache/cache.db and mount a named volume
+// at this exact directory. Scanning it by default is the container-world
+// analog of scanning <platform cache dir>/lytecache on a bare host: not
+// arbitrary discovery, just not making the operator spell out a location
+// this project itself already treats as the standard one. Harmless to
+// include unconditionally on a non-container host too, since it simply
+// won't exist there and filepath.Glob (see MergeSources) finds no
+// matches in a nonexistent directory.
+const dockerSharedCacheDir = "/var/cache/lytecache"
+
+// defaultScanDirsIfUnconfigured falls back to scanning the standard,
+// well-known locations -- "<platform cache dir>/lytecache" (the directory
+// lytecache.DefaultPath derives its own default file from, in every
+// library implementation) and dockerSharedCacheDir (this project's own
+// documented Docker volume-mount convention) -- but only when the
+// operator gave zero configuration at all (no --db, no --scan, nothing in
+// the config file's databases: list). This is not silent auto-discovery
+// of arbitrary files; it's the operator not having to spell out a
+// location the project itself already treats as standard. Any explicit
+// --db/--scan/config-file entry fully overrides this. A nonexistent
+// directory (e.g. a first run before any app has ever written a cache
+// file yet, or a bare host where the Docker convention path just doesn't
+// exist) is fine -- filepath.Glob (see MergeSources) just finds no
+// matches there.
+//
+// cacheDir is a parameter (rather than calling os.UserCacheDir directly)
+// so this is unit-testable without depending on the host's actual cache
+// directory, matching this file's BuildConfig/checkNotRootOnGOOS pattern.
+func defaultScanDirsIfUnconfigured(databases []ui.DBSource, scanDirs []string, cacheDir string) []string {
+	if len(databases) != 0 || len(scanDirs) != 0 {
+		return scanDirs
+	}
+	return []string{filepath.Join(cacheDir, "lytecache"), dockerSharedCacheDir}
 }
 
 // portError distinguishes "the port is already in use" from other listen

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -8,8 +9,12 @@ import (
 )
 
 func TestDefaultScanDirsIfUnconfigured(t *testing.T) {
-	const cacheDir = "/home/x/.cache"
-	want := []string{"/home/x/.cache/lytecache", dockerSharedCacheDir}
+	// Built via filepath.Join, not a hand-written literal -- Join uses the
+	// native separator for whatever cacheDir it's given (backslash on
+	// Windows), so a forward-slash literal here would mismatch the
+	// function under test's real output on that platform.
+	cacheDir := filepath.Join(string(filepath.Separator)+"home", "x", ".cache")
+	want := []string{filepath.Join(cacheDir, "lytecache"), dockerSharedCacheDir}
 
 	got := defaultScanDirsIfUnconfigured(nil, nil, cacheDir)
 	if !reflect.DeepEqual(got, want) {

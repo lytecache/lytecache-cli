@@ -102,10 +102,28 @@ homebrew_casks:
     # worth the duplication and drift risk right now. `lytecache service
     # install && lytecache service start` already gives the identical
     # brew-services experience; see docs/ui.md.
+    #
+    # hooks.post.install registers (but deliberately does not start) the
+    # LaunchAgent on every install/upgrade -- `service install` alone,
+    # never `start`, matching the "nothing runs/listens without an
+    # explicit action" posture the whole admin UI is built around (default
+    # admin/admin credentials exist the moment it's actually running, so
+    # that moment should be chosen, not silently handed to you by a
+    # package manager). Wrapped in `sh -c '... || true'` because Homebrew
+    # rolls back and fails the *entire* cask install if a postflight
+    # system_command exits non-zero (verified empirically) -- a hiccup in
+    # service registration (e.g. re-running on an upgrade) must never take
+    # down the actual binary install with it. staged_path is the
+    # Caskroom-extracted binary, guaranteed present at postflight time
+    # regardless of PATH-linking order.
+    hooks:
+      post:
+        install: |
+          system_command "/bin/sh", args: ["-c", "\"#{staged_path}/lytecache\" service install || true"]
     caveats: |
       lytecache ui defaults to http://127.0.0.1:7070, first-run credentials admin/admin.
       Run it once with: lytecache ui
-      Or in the background: lytecache service install && lytecache service start
+      Or start the background service (already registered for you): lytecache service start
       See: https://github.com/lytecache/lytecache-cli/blob/main/docs/ui.md
 
 # Scoop bucket (Windows): `scoop bucket add lytecache https://github.com/lytecache/scoop-bucket`

@@ -85,6 +85,7 @@ type Config struct {
 // must call Close when done.
 type Server struct {
 	mgr         *Manager
+	scanDirs    []string
 	allowDelete bool
 	logf        func(format string, args ...any)
 	mux         *http.ServeMux
@@ -152,6 +153,7 @@ func NewServer(cfg Config) (*Server, error) {
 
 	s := &Server{
 		mgr:             mgr,
+		scanDirs:        cfg.ScanDirs,
 		allowDelete:     cfg.AllowDelete,
 		logf:            logf,
 		authConfig:      cfg.AuthConfig,

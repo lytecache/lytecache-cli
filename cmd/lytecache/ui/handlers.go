@@ -14,6 +14,17 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	// Every dashboard load re-checks the --scan directories for a *.db
+	// file that appeared since the last scan (a service whose first cache
+	// write happened after lytecache ui started, most commonly) -- see
+	// Manager.Rescan's doc comment for why this can't just happen once at
+	// startup. This piggybacks on the dashboard's existing 2-second
+	// auto-refresh (poll.js), so a new database shows up within one
+	// refresh cycle with no server restart, and costs nothing extra on
+	// pages that aren't the dashboard.
+	if err := s.mgr.Rescan(s.scanDirs, func(msg string) { s.logf("lytecache ui: %s", msg) }); err != nil {
+		s.logf("lytecache ui: rescan: %v", err)
+	}
 	rows := BuildDashboard(s.mgr)
 	page := s.basePage(r)
 	page.RefreshSeconds = defaultDashboardRefreshSeconds

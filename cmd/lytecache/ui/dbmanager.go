@@ -51,22 +51,38 @@ func MergeSources(base []DBSource, scanDirs []string, warn func(string)) ([]DBSo
 	}
 
 	for _, dir := range scanDirs {
-		matches, err := filepath.Glob(filepath.Join(dir, "*.db"))
+		found, err := scanDBFiles(dir)
 		if err != nil {
-			return nil, fmt.Errorf("--scan %s: %w", dir, err)
+			return nil, err
 		}
-		sort.Strings(matches)
-		for _, m := range matches {
-			name := strings.TrimSuffix(filepath.Base(m), ".db")
-			if existing, ok := seen[name]; ok {
+		for _, s := range found {
+			if existing, ok := seen[s.Name]; ok {
 				if warn != nil {
-					warn(fmt.Sprintf("--scan %s: %q already configured (%s), skipping %s", dir, name, existing, m))
+					warn(fmt.Sprintf("--scan %s: %q already configured (%s), skipping %s", dir, s.Name, existing, s.Path))
 				}
 				continue
 			}
-			seen[name] = m
-			out = append(out, DBSource{Name: name, Path: m})
+			seen[s.Name] = s.Path
+			out = append(out, s)
 		}
+	}
+	return out, nil
+}
+
+// scanDBFiles globs dir non-recursively for *.db files, deriving each
+// one's Name from its filename (without the .db suffix) -- the shared
+// core both MergeSources (startup) and Manager.Rescan (periodic
+// re-discovery, see its doc comment) glob with, so the two can never
+// drift in how they derive a name from a path.
+func scanDBFiles(dir string) ([]DBSource, error) {
+	matches, err := filepath.Glob(filepath.Join(dir, "*.db"))
+	if err != nil {
+		return nil, fmt.Errorf("--scan %s: %w", dir, err)
+	}
+	sort.Strings(matches)
+	out := make([]DBSource, len(matches))
+	for i, m := range matches {
+		out[i] = DBSource{Name: strings.TrimSuffix(filepath.Base(m), ".db"), Path: m}
 	}
 	return out, nil
 }
@@ -122,8 +138,11 @@ func (e *dbEntry) Cache(namespace string) (*lytecache.Cache, error) {
 	return c, nil
 }
 
-// Manager holds every configured database, in configured order.
+// Manager holds every configured database, in configured order. entries/
+// byName were immutable-after-construction until Rescan (see its doc
+// comment) -- mu protects them now that they aren't.
 type Manager struct {
+	mu      sync.RWMutex
 	entries []*dbEntry
 	byName  map[string]*dbEntry
 }
@@ -134,17 +153,66 @@ type Manager struct {
 func NewManager(sources []DBSource) *Manager {
 	m := &Manager{byName: make(map[string]*dbEntry, len(sources))}
 	for _, s := range sources {
-		e := &dbEntry{
-			Name:             s.Name,
-			Path:             s.Path,
-			DeclaredMaxKeys:  s.MaxKeys,
-			DeclaredMaxBytes: s.MaxBytes,
-			caches:           make(map[string]*lytecache.Cache),
-		}
-		m.entries = append(m.entries, e)
-		m.byName[s.Name] = e
+		m.addLocked(s)
 	}
 	return m
+}
+
+// addLocked appends a new entry for s. Caller must hold mu for writing.
+func (m *Manager) addLocked(s DBSource) *dbEntry {
+	e := &dbEntry{
+		Name:             s.Name,
+		Path:             s.Path,
+		DeclaredMaxKeys:  s.MaxKeys,
+		DeclaredMaxBytes: s.MaxBytes,
+		caches:           make(map[string]*lytecache.Cache),
+	}
+	m.entries = append(m.entries, e)
+	m.byName[s.Name] = e
+	return e
+}
+
+// Rescan re-globs scanDirs (the same directories --scan was given at
+// startup) and adds a new entry for any *.db file that has appeared since
+// the last scan -- MergeSources (and therefore NewManager) only ever runs
+// once, at server startup, so without this, a service whose first cache
+// write happens after lytecache ui has already started would stay
+// invisible until the process is restarted, no matter how much data it
+// writes afterward. Existing entries (whether from --db or an earlier
+// scan) are left completely alone -- their already-open Cache handles
+// keep working exactly as before; Rescan only ever adds, never replaces
+// or removes.
+//
+// A newly-scanned name colliding with an existing entry pointing at a
+// *different* path is a genuine naming collision, reported via warn
+// exactly like MergeSources does at startup. A name colliding with an
+// existing entry at the *same* path is not a collision -- it's the same
+// file Rescan already knows about from a previous pass -- and is skipped
+// silently, since warning about it every poll interval forever would be
+// pure log spam for a file that was never actually a problem.
+func (m *Manager) Rescan(scanDirs []string, warn func(string)) error {
+	if len(scanDirs) == 0 {
+		return nil
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, dir := range scanDirs {
+		found, err := scanDBFiles(dir)
+		if err != nil {
+			return err
+		}
+		for _, s := range found {
+			existing, ok := m.byName[s.Name]
+			switch {
+			case !ok:
+				m.addLocked(s)
+			case existing.Path != s.Path && warn != nil:
+				warn(fmt.Sprintf("--scan %s: %q already configured (%s), skipping %s", dir, s.Name, existing.Path, s.Path))
+			}
+		}
+	}
+	return nil
 }
 
 // WarmUp eagerly opens the default namespace for every configured
@@ -163,6 +231,8 @@ func (m *Manager) WarmUp(logf func(format string, args ...any)) {
 
 // Names returns configured database names, in configured order.
 func (m *Manager) Names() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	names := make([]string, len(m.entries))
 	for i, e := range m.entries {
 		names[i] = e.Name
@@ -175,6 +245,8 @@ func (m *Manager) Names() []string {
 // handlers.go/pages.go/metrics.go/viewmodel.go all call it directly, never
 // from package main.
 func (m *Manager) entry(name string) (*dbEntry, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	e, ok := m.byName[name]
 	return e, ok
 }

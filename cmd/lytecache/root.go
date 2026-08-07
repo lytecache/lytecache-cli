@@ -64,6 +64,8 @@ func buildCommandTree(flags *globalFlags) *cobra.Command {
 		newWhichCmd(flags),
 		newDumpCmd(flags),
 		newWatchCmd(flags),
+		newUICmd(flags),
+		newServiceCmd(),
 	)
 
 	return root

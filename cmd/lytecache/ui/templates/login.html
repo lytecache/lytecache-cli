@@ -1,0 +1,13 @@
+{{define "title"}}Lytecache -- log in{{end}}
+{{define "content"}}
+<div class="login-box">
+  {{template "brandmark"}}
+  <h1>Lytecache</h1>
+  {{if .Error}}<p class="warning">{{.Error}}</p>{{end}}
+  <form method="post" action="/login">
+    <label>username<input name="username" autocomplete="username" autofocus></label>
+    <label>password<input type="password" name="password" autocomplete="current-password"></label>
+    <button type="submit">log in</button>
+  </form>
+</div>
+{{end}}

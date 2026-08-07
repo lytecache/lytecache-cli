@@ -1,0 +1,44 @@
+{{define "title"}}Lytecache -- {{.DB}}/{{.Namespace}}/{{.Key}}{{end}}
+{{define "content"}}
+<div class="page-header">
+  <h1><span class="mono">{{.DB}}</span> <span class="sep">/</span> <span class="mono">{{.Namespace}}</span> <span class="sep">/</span> <span class="mono">{{.Key}}</span></h1>
+</div>
+
+{{if not .Found}}
+<p class="empty-state">Not found -- missing or expired.</p>
+{{else}}
+<dl class="meta-grid">
+  <dt>type</dt><dd>{{.TypeName}}</dd>
+  <dt>size</dt><dd>{{.SizeBytes}} bytes</dd>
+  <dt>TTL</dt><dd>{{if .ExpiresAtRFC3339}}<span data-expires-at="{{.ExpiresAtRFC3339}}">{{.TTLDisplay}}</span>{{else}}no expiry{{end}}</dd>
+  <dt>access count</dt><dd>{{.AccessCount}}</dd>
+  <dt>created</dt><dd class="timestamp">{{.CreatedAt.Format "2006-01-02 15:04:05 MST"}}</dd>
+  <dt>last accessed</dt><dd class="timestamp">{{.LastAccessed.Format "2006-01-02 15:04:05 MST"}}</dd>
+</dl>
+
+{{if .Masked}}
+<p class="masked-notice">{{.Message}}</p>
+{{else if .NonPortable}}
+<p class="non-portable-notice">{{.Message}}</p>
+{{else}}
+<details class="value-reveal">
+  <summary>Reveal value</summary>
+  {{if .IsJSON}}
+  <pre class="json-value" data-json>{{.Rendered}}</pre>
+  {{else}}
+  <pre class="plain-value">{{.Rendered}}</pre>
+  {{end}}
+</details>
+{{end}}
+
+{{if .AllowDelete}}
+<div class="danger-zone">
+  <form method="post" action="/db/{{.DB}}/namespaces/{{.Namespace}}/delete-key" class="inline-form" data-confirm="Delete this key?">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="key" value="{{.Key}}">
+    <button type="submit" class="danger">delete key</button>
+  </form>
+</div>
+{{end}}
+{{end}}
+{{end}}

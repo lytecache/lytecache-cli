@@ -1,0 +1,82 @@
+{{define "title"}}Lytecache -- {{.DB}}/{{.Namespace}}{{end}}
+{{define "content"}}
+<div class="page-header">
+  <h1><span class="mono">{{.DB}}</span> <span class="sep">/</span> <span class="mono">{{.Namespace}}</span></h1>
+</div>
+
+<form method="get" class="filter-form">
+  <input type="hidden" name="sort" value="{{.Sort}}">
+  <input type="search" name="glob" value="{{.Glob}}" id="key-filter" placeholder="glob pattern, e.g. session:* ( / to focus)" autocomplete="off">
+  <button type="submit">filter</button>
+</form>
+
+{{if .Truncated}}
+<p class="warning">Scan truncated at {{.TotalCount}} matches -- narrow the glob filter to see everything.</p>
+{{end}}
+
+<div class="table-toolbar">
+  <span>{{.TotalCount}} key(s) &middot; page {{.PageNum}}</span>
+  {{if .AllowDelete}}
+  <button type="submit" form="bulk-delete-form" class="danger" data-confirm="Delete the selected keys?">delete selected</button>
+  {{end}}
+</div>
+
+<div class="table-scroll">
+<table class="data-table">
+<thead><tr>
+{{if .AllowDelete}}<th></th>{{end}}
+<th><a href="{{.SortLink "key"}}">Key {{.SortIndicator "key"}}</a></th>
+<th>Type</th>
+<th><a href="{{.SortLink "ttl"}}">TTL {{.SortIndicator "ttl"}}</a></th>
+<th><a href="{{.SortLink "size"}}">Size {{.SortIndicator "size"}}</a></th>
+<th><a href="{{.SortLink "access_count"}}">Access count {{.SortIndicator "access_count"}}</a></th>
+<th><a href="{{.SortLink "created"}}">Created {{.SortIndicator "created"}}</a></th>
+<th><a href="{{.SortLink "last_accessed"}}">Last accessed {{.SortIndicator "last_accessed"}}</a></th>
+</tr></thead>
+<tbody>
+{{$db := .DB}}{{$ns := .Namespace}}{{$allowDelete := .AllowDelete}}
+{{range .Rows}}
+<tr data-key-row tabindex="0" data-href="/db/{{$db}}/namespaces/{{$ns}}/keys/{{.Key}}">
+{{if $allowDelete}}<td><input type="checkbox" name="key" value="{{.Key}}" form="bulk-delete-form" class="row-select"></td>{{end}}
+<td class="mono"><a href="/db/{{$db}}/namespaces/{{$ns}}/keys/{{.Key}}">{{.Key}}</a></td>
+<td>{{.TypeName}}{{if .NonPortable}} <span class="hint">(non-portable)</span>{{end}}</td>
+<td>{{if .ExpiresAtRFC3339}}<span class="ttl" data-expires-at="{{.ExpiresAtRFC3339}}">{{.TTLDisplay}}</span>{{else}}-{{end}}</td>
+<td class="num">{{.SizeBytes}}</td>
+<td class="num">{{.AccessCount}}</td>
+<td class="timestamp">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+<td class="timestamp">{{.LastAccessed.Format "2006-01-02 15:04:05"}}</td>
+</tr>
+{{end}}
+</tbody>
+</table>
+</div>
+
+{{if .AllowDelete}}
+<form method="post" action="/db/{{.DB}}/namespaces/{{.Namespace}}/delete-keys" id="bulk-delete-form">
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+</form>
+{{end}}
+
+<div class="danger-zone">
+  <h2>Namespace actions</h2>
+  <div class="action-row">
+    <form method="post" action="/db/{{.DB}}/namespaces/{{.Namespace}}/vacuum" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" title="Reclaims disk space; deletes no rows, so always available">vacuum</button>
+    </form>
+    {{if .AllowDelete}}
+    <form method="post" action="/db/{{.DB}}/namespaces/{{.Namespace}}/maintain" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit">run maintenance pass</button>
+    </form>
+    {{end}}
+  </div>
+  {{if .AllowDelete}}
+  <form method="post" action="/db/{{.DB}}/namespaces/{{.Namespace}}/flush" class="inline-form" data-confirm-namespace="{{.Namespace}}">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="text" name="confirm_namespace" placeholder='type "{{.Namespace}}" to confirm' required autocomplete="off">
+    <button type="submit" class="danger">flush namespace</button>
+  </form>
+  {{end}}
+</div>
+{{end}}

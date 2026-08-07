@@ -1,0 +1,26 @@
+{{define "title"}}Lytecache -- search{{end}}
+{{define "content"}}
+<div class="page-header"><h1>Search: <span class="mono">{{.Pattern}}</span></h1></div>
+
+{{if .Truncated}}<p class="warning">Results truncated -- narrow the pattern to see everything.</p>{{end}}
+{{range .Errors}}<p class="warning">{{.}}</p>{{end}}
+
+{{if not .Rows}}
+<p class="empty-state">No matches.</p>
+{{else}}
+<div class="table-scroll">
+<table class="data-table">
+<thead><tr><th>Database</th><th>Namespace</th><th>Key</th></tr></thead>
+<tbody>
+{{range .Rows}}
+<tr>
+<td>{{.DB}}</td>
+<td>{{.Namespace}}</td>
+<td class="mono"><a href="/db/{{.DB}}/namespaces/{{.Namespace}}/keys/{{.Key}}">{{.Key}}</a></td>
+</tr>
+{{end}}
+</tbody>
+</table>
+</div>
+{{end}}
+{{end}}

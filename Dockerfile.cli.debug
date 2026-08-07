@@ -29,7 +29,8 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     -o /lytecache \
     ./cmd/lytecache
 
-RUN mkdir -p /var/cache/lytecache && chown 65532:65532 /var/cache/lytecache
+RUN mkdir -p /var/cache/lytecache /home/lytecache/.config/lytecache \
+ && chown -R 65532:65532 /var/cache/lytecache /home/lytecache
 
 # distroless/static-debian12:nonroot already runs as a real, resolvable
 # 65532:65532 (user "nonroot") with a passwd/group entry, unlike scratch --
@@ -46,9 +47,17 @@ LABEL org.opencontainers.image.title="lytecache" \
 
 COPY --from=build /lytecache /lytecache
 COPY --from=build --chown=65532:65532 /var/cache/lytecache /var/cache/lytecache
+COPY --from=build --chown=65532:65532 /home/lytecache /home/lytecache
 
 ENV LYTECACHE_PATH=/var/cache/lytecache/cache.db
 VOLUME ["/var/cache/lytecache"]
+
+# See Dockerfile.cli's identical comment: makes `lytecache ui`'s default
+# config path resolve without requiring --config, overriding whatever
+# distroless/static-debian12:nonroot's own $HOME might otherwise be, so
+# both image variants behave identically here.
+ENV HOME=/home/lytecache
+EXPOSE 7070
 
 USER 65532:65532
 

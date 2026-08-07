@@ -81,3 +81,4 @@ case ":$PATH:" in
 esac
 
 "$install_dir/lytecache" --version
+echo "Try the admin UI: lytecache ui   (or in the background: lytecache service install)" >&2

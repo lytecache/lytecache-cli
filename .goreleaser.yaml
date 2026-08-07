@@ -72,6 +72,11 @@ nfpms:
       - deb
       - rpm
     bindir: /usr/bin
+    # Does NOT enable/start anything automatically -- surprising and wrong
+    # for a per-user tool to do on package install. Just prints the same
+    # next-step hint install.sh gives a plain binary download.
+    scripts:
+      postinstall: scripts/nfpm-postinstall.sh
 
 # Homebrew tap: `brew install lytecache/tap/lytecache`. As of GoReleaser
 # v2.10, `homebrew_casks` (not the older `brews`/Formula mechanism) is the
@@ -90,6 +95,18 @@ homebrew_casks:
     description: Command-line tool for interacting with lytecache database files.
     license: Apache-2.0
     binaries: [lytecache]
+    # A native `brew services` integration (Homebrew Cask's own `service`
+    # stanza) needs a launchd plist bundled as a release artifact -- a
+    # second plist-generation path alongside `lytecache service install`'s
+    # own (already-implemented, kardianos/service-based) one, which isn't
+    # worth the duplication and drift risk right now. `lytecache service
+    # install && lytecache service start` already gives the identical
+    # brew-services experience; see docs/ui.md.
+    caveats: |
+      lytecache ui defaults to http://127.0.0.1:7070, first-run credentials admin/admin.
+      Run it once with: lytecache ui
+      Or in the background: lytecache service install && lytecache service start
+      See: https://github.com/lytecache/lytecache-cli/blob/main/docs/ui.md
 
 # Scoop bucket (Windows): `scoop bucket add lytecache https://github.com/lytecache/scoop-bucket`
 # then `scoop install lytecache`.

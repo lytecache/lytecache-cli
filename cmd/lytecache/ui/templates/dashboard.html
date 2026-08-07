@@ -1,0 +1,52 @@
+{{define "title"}}Lytecache -- fleet dashboard{{end}}
+{{define "content"}}
+<div class="page-header">
+  <h1>Fleet dashboard</h1>
+  <label class="refresh-toggle"><input type="checkbox" id="auto-refresh" checked> auto-refresh</label>
+</div>
+{{/* poll.js fetches the dashboard in the background on a timer and swaps
+     just this region in, instead of reloading the whole page -- so a
+     refresh never interrupts scrolling, a click, or an in-flight action
+     the way a full navigation would. Keep this the outermost element that
+     actually changes between refreshes. */}}
+<div id="refresh-region">
+{{if not .Rows}}
+<p class="empty-state">No databases configured. Start <code>lytecache ui</code> with
+<code>--db name=/path/to.db</code> (repeatable) or <code>--scan /a/directory</code> to pick up every
+<code>*.db</code> file there automatically. Which files are managed is decided at startup by the
+operator, not from the browser.</p>
+{{else}}
+<div class="table-scroll">
+<table class="data-table" data-sortable>
+<thead><tr>
+<th>Name</th><th>Keys</th><th>Size</th><th>Max bytes</th><th>Max keys</th>
+<th>Namespaces</th><th>Hit rate</th><th>Evictions</th><th>Expired removed</th>
+<th>Expired present</th><th>Schema</th><th>Status</th>
+</tr></thead>
+<tbody>
+{{range .Rows}}
+<tr class="{{if .Unhealthy}}row-unhealthy{{else if .Err}}row-error{{end}}">
+<td><a href="/db/{{.Name}}/namespaces/default/keys">{{.Name}}</a></td>
+<td class="num">{{.KeyCount}}</td>
+<td class="num">{{.SizeBytes}}</td>
+<td class="num">{{.MaxBytesDisplay}}</td>
+<td class="num">{{.MaxKeysDisplay}}</td>
+<td class="num">{{.NamespaceCount}}</td>
+<td class="num">{{.HitRatePercent}}</td>
+<td class="num">{{.Evictions}}</td>
+<td class="num">{{.ExpiredRemoved}}</td>
+<td class="num">{{.ExpiredPresent}}</td>
+<td class="num">{{.SchemaVersion}}</td>
+<td>
+{{- if .Err}}<span class="pill pill-error" title="{{.Err}}">error</span>
+{{- else if .Unhealthy}}<span class="pill pill-warning" title="{{range .UnhealthyWhy}}{{.}}; {{end}}">unhealthy</span>
+{{- else}}<span class="pill pill-ok">ok</span>{{end}}
+</td>
+</tr>
+{{end}}
+</tbody>
+</table>
+</div>
+{{end}}
+</div>
+{{end}}

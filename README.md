@@ -79,6 +79,17 @@ Every command works the same whether you run it one-shot, as above, or type it a
 
 Global flags: `--db <path>`, `--namespace <name>` (default `default`), `--quiet` (suppress decoration), `--version`.
 
+## Admin UI
+
+`lytecache ui` starts a local web admin console — a RedisInsight/pgAdmin-style tool for inspecting and cleaning up cache files across several databases at once, not a cache server (no wire protocol, nothing an application ever connects to):
+
+```console
+$ lytecache ui --db orders=/data/orders.db
+lytecache ui listening on http://127.0.0.1:7070
+```
+
+Fleet dashboard, a namespace-aware key browser, a value viewer, cross-database search, and delete-only mutations (`--allow-delete`) — see **[docs/ui.md](docs/ui.md)** for the full guide, including multi-database setup, `/metrics` for Prometheus, running it as a background service (`lytecache service install`), and the exposure guardrails that apply before you point it at anything beyond your own machine.
+
 ## Database resolution
 
 Every command resolves which file to open in this order:
@@ -142,7 +153,7 @@ This repo contains only the CLI (`cmd/lytecache`) and depends on [`github.com/ly
 
 ## Docker
 
-`lytecache` — just the CLI, packaged as a container — is published as a multi-arch image at `ghcr.io/lytecache/lytecache`. This is **not** a server image: the container runs one command and exits, exactly like the native binary. There's no listener, no daemon, no healthcheck that assumes a long-running process, because lytecache itself isn't a server — see the main [README](https://github.com/lytecache/lytecache-go#readme) if that's surprising.
+`lytecache` — just the CLI, packaged as a container — is published as a multi-arch image at `ghcr.io/lytecache/lytecache`. This is **not a cache server image**: `lytecache get`/`set`/`keys`/etc. run one command and exit, exactly like the native binary, because lytecache itself isn't a cache server — see the main [README](https://github.com/lytecache/lytecache-go#readme) if that's surprising. `lytecache ui` (see [below](#admin-ui) and [docs/ui.md](docs/ui.md)) is the one long-running exception: a local web admin console, not a cache endpoint.
 
 ### The primary pattern: inspecting an app's live cache
 
@@ -210,6 +221,21 @@ alias lytecache='docker run --rm -it -v myapp-cache:/var/cache/lytecache ghcr.io
 lytecache stats
 ```
 
+### Running the admin UI
+
+The same image also runs `lytecache ui` (see [Admin UI](#admin-ui) above and **[docs/ui.md](docs/ui.md)** for the full guide) — the one long-running exception to "runs one command and exits". `--host 0.0.0.0` is required *inside* the container for Docker's port publishing to reach it at all (a process bound to `127.0.0.1` in its own network namespace is unreachable from outside it, published port or not), and the config volume needs its own mount, separate from the cache data volume, or the admin password resets on every container recreation:
+
+```bash
+docker run --rm -p 127.0.0.1:7070:7070 \
+  -v myapp-cache:/var/cache/lytecache \
+  -v lytecache-ui-config:/home/lytecache/.config/lytecache \
+  -e LYTECACHE_PATH=/var/cache/lytecache/cache.db \
+  -e LYTECACHE_UI_PASSWORD=a-real-password \
+  ghcr.io/lytecache/lytecache:latest ui --host 0.0.0.0 --insecure
+```
+
+Then open `http://127.0.0.1:7070`. The `-p 127.0.0.1:...` mapping keeps it reachable only from the machine running Docker, even though the container itself binds `0.0.0.0` (Docker's networking requires that, but it isn't the same thing as being reachable from anywhere else). `LYTECACHE_UI_PASSWORD` provisions a real password on first run — the UI refuses to bind beyond `127.0.0.1` at all while the password is still the public default, so skipping this would just fail to start. See [`examples/docker-compose.yml`](examples/docker-compose.yml) for a complete Compose service, including a `--scan`-based fleet view across several services' caches at once.
+
 ### Embedding the CLI in an application image
 
 Rather than installing Go or downloading a release archive, copy the static binary straight out of the published image in your own `Dockerfile`:
@@ -230,7 +256,7 @@ GitHub Container Registry packages are **private by default**, including the ver
 
 ### What this image will never be
 
-No server mode, no network listener, no multi-host shared cache. Sharing one `.db` file across multiple hosts over a network filesystem (NFS, Kubernetes `ReadWriteMany`) is unsupported — SQLite's locking depends on guarantees network filesystems don't reliably provide, so this can silently corrupt the file rather than just being slow. Keep the volume local to one host (or one node), the same way you already would for the library itself.
+No *cache* server mode: no wire protocol, nothing an application connects to over the network, no multi-host shared cache. `lytecache ui` (see below) does open an HTTP listener, but it's a local admin console you point a browser at, not a cache endpoint — nothing in this project ever accepts cache reads/writes over a socket. Sharing one `.db` file across multiple hosts over a network filesystem (NFS, Kubernetes `ReadWriteMany`) is unsupported — SQLite's locking depends on guarantees network filesystems don't reliably provide, so this can silently corrupt the file rather than just being slow. Keep the volume local to one host (or one node), the same way you already would for the library itself.
 
 ## License
 

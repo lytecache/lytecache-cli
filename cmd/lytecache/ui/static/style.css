@@ -1,0 +1,619 @@
+/* lytecache ui -- white background, the gold/amber accent lifted straight
+   from docs/index.html's own --accent token (so the admin console and the
+   documentation site read as the same product), no red anywhere: severity
+   is signalled with weight/borders instead of a danger hue. Light is the
+   default; dark follows prefers-color-scheme, using docs/index.html's dark
+   tokens too. No JS toggle -- see docs/ui.md for why that's intentional. */
+
+:root {
+  --bg: #ffffff;
+  --bg-raised: #ffffff;
+  --bg-sunken: #f3f4f2;
+  --border: #dbdfdc;
+  --text: #16201f;
+  --text-dim: #5c6b68;
+
+  --accent: #96591a;
+  --accent-hover: #7a4714;
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(150, 89, 26, 0.10);
+
+  --ok: #2f7d5e;
+  --ok-bg: #e7f3ee;
+  --warning: #92670c;
+  --warning-bg: #fbf1da;
+  --warning-border: #e9d093;
+  /* No red: destructive actions and error rows are signalled with the ink
+     color plus weight/borders, not a danger hue. */
+  --danger: #16201f;
+  --danger-bg: #eceeec;
+  --danger-border: #16201f;
+  --literal: #56628c;
+  --link: #96591a;
+
+  --radius: 4px;
+  --radius-sm: 3px;
+  --shadow-sm: 0 1px 2px rgba(20, 30, 28, 0.08);
+  --shadow-md: 0 8px 22px rgba(20, 30, 28, 0.14);
+
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Python/Java/Node/Go/PHP marks (Simple Icons, CC0) -- every language
+     lytecache-go supports, same assets docs/index.html embeds, reused here
+     as a faint background behind the login card. */
+  --icon-python: url("data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UHl0aG9uPC90aXRsZT48cGF0aCBkPSJNMTQuMjUuMThsLjkuMi43My4yNi41OS4zLjQ1LjMyLjM0LjM0LjI1LjM0LjE2LjMzLjEuMy4wNC4yNi4wMi4yLS4wMS4xM1Y4LjVsLS4wNS42My0uMTMuNTUtLjIxLjQ2LS4yNi4zOC0uMy4zMS0uMzMuMjUtLjM1LjE5LS4zNS4xNC0uMzMuMS0uMy4wNy0uMjYuMDQtLjIxLjAySDguNzdsLS42OS4wNS0uNTkuMTQtLjUuMjItLjQxLjI3LS4zMy4zMi0uMjcuMzUtLjIuMzYtLjE1LjM3LS4xLjM1LS4wNy4zMi0uMDQuMjctLjAyLjIxdjMuMDZIMy4xN2wtLjIxLS4wMy0uMjgtLjA3LS4zMi0uMTItLjM1LS4xOC0uMzYtLjI2LS4zNi0uMzYtLjM1LS40Ni0uMzItLjU5LS4yOC0uNzMtLjIxLS44OC0uMTQtMS4wNS0uMDUtMS4yMy4wNi0xLjIyLjE2LTEuMDQuMjQtLjg3LjMyLS43MS4zNi0uNTcuNC0uNDQuNDItLjMzLjQyLS4yNC40LS4xNi4zNi0uMS4zMi0uMDUuMjQtLjAxaC4xNmwuMDYuMDFoOC4xNnYtLjgzSDYuMThsLS4wMS0yLjc1LS4wMi0uMzcuMDUtLjM0LjExLS4zMS4xNy0uMjguMjUtLjI2LjMxLS4yMy4zOC0uMi40NC0uMTguNTEtLjE1LjU4LS4xMi42NC0uMS43MS0uMDYuNzctLjA0Ljg0LS4wMiAxLjI3LjA1em0tNi4zIDEuOThsLS4yMy4zMy0uMDguNDEuMDguNDEuMjMuMzQuMzMuMjIuNDEuMDkuNDEtLjA5LjMzLS4yMi4yMy0uMzQuMDgtLjQxLS4wOC0uNDEtLjIzLS4zMy0uMzMtLjIyLS40MS0uMDktLjQxLjA5em0xMy4wOSAzLjk1bC4yOC4wNi4zMi4xMi4zNS4xOC4zNi4yNy4zNi4zNS4zNS40Ny4zMi41OS4yOC43My4yMS44OC4xNCAxLjA0LjA1IDEuMjMtLjA2IDEuMjMtLjE2IDEuMDQtLjI0Ljg2LS4zMi43MS0uMzYuNTctLjQuNDUtLjQyLjMzLS40Mi4yNC0uNC4xNi0uMzYuMDktLjMyLjA1LS4yNC4wMi0uMTYtLjAxaC04LjIydi44Mmg1Ljg0bC4wMSAyLjc2LjAyLjM2LS4wNS4zNC0uMTEuMzEtLjE3LjI5LS4yNS4yNS0uMzEuMjQtLjM4LjItLjQ0LjE3LS41MS4xNS0uNTguMTMtLjY0LjA5LS43MS4wNy0uNzcuMDQtLjg0LjAxLTEuMjctLjA0LTEuMDctLjE0LS45LS4yLS43My0uMjUtLjU5LS4zLS40NS0uMzMtLjM0LS4zNC0uMjUtLjM0LS4xNi0uMzMtLjEtLjMtLjA0LS4yNS0uMDItLjIuMDEtLjEzdi01LjM0bC4wNS0uNjQuMTMtLjU0LjIxLS40Ni4yNi0uMzguMy0uMzIuMzMtLjI0LjM1LS4yLjM1LS4xNC4zMy0uMS4zLS4wNi4yNi0uMDQuMjEtLjAyLjEzLS4wMWg1Ljg0bC42OS0uMDUuNTktLjE0LjUtLjIxLjQxLS4yOC4zMy0uMzIuMjctLjM1LjItLjM2LjE1LS4zNi4xLS4zNS4wNy0uMzIuMDQtLjI4LjAyLS4yMVY2LjA3aDIuMDlsLjE0LjAxem0tNi40NyAxNC4yNWwtLjIzLjMzLS4wOC40MS4wOC40MS4yMy4zMy4zMy4yMy40MS4wOC40MS0uMDguMzMtLjIzLjIzLS4zMy4wOC0uNDEtLjA4LS40MS0uMjMtLjMzLS4zMy0uMjMtLjQxLS4wOC0uNDEuMDh6Ii8+PC9zdmc+");
+  --icon-node: url("data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Tm9kZS5qczwvdGl0bGU+PHBhdGggZD0iTTExLjk5OCwyNGMtMC4zMjEsMC0wLjY0MS0wLjA4NC0wLjkyMi0wLjI0N2wtMi45MzYtMS43MzdjLTAuNDM4LTAuMjQ1LTAuMjI0LTAuMzMyLTAuMDgtMC4zODMgYzAuNTg1LTAuMjAzLDAuNzAzLTAuMjUsMS4zMjgtMC42MDRjMC4wNjUtMC4wMzcsMC4xNTEtMC4wMjMsMC4yMTgsMC4wMTdsMi4yNTYsMS4zMzljMC4wODIsMC4wNDUsMC4xOTcsMC4wNDUsMC4yNzIsMGw4Ljc5NS01LjA3NiBjMC4wODItMC4wNDcsMC4xMzQtMC4xNDEsMC4xMzQtMC4yMzhWNi45MjFjMC0wLjA5OS0wLjA1My0wLjE5Mi0wLjEzNy0wLjI0MmwtOC43OTEtNS4wNzJjLTAuMDgxLTAuMDQ3LTAuMTg5LTAuMDQ3LTAuMjcxLDAgTDMuMDc1LDYuNjhDMi45OSw2LjcyOSwyLjkzNiw2LjgyNSwyLjkzNiw2LjkyMXYxMC4xNWMwLDAuMDk3LDAuMDU0LDAuMTg5LDAuMTM5LDAuMjM1bDIuNDA5LDEuMzkyIGMxLjMwNywwLjY1NCwyLjEwOC0wLjExNiwyLjEwOC0wLjg5VjcuNzg3YzAtMC4xNDIsMC4xMTQtMC4yNTMsMC4yNTYtMC4yNTNoMS4xMTVjMC4xMzksMCwwLjI1NSwwLjExMiwwLjI1NSwwLjI1M3YxMC4wMjEgYzAsMS43NDUtMC45NSwyLjc0NS0yLjYwNCwyLjc0NWMtMC41MDgsMC0wLjkwOSwwLTIuMDI2LTAuNTUxTDIuMjgsMTguNjc1Yy0wLjU3LTAuMzI5LTAuOTIyLTAuOTQ1LTAuOTIyLTEuNjA0VjYuOTIxIGMwLTAuNjU5LDAuMzUzLTEuMjc1LDAuOTIyLTEuNjAzbDguNzk1LTUuMDgyYzAuNTU3LTAuMzE1LDEuMjk2LTAuMzE1LDEuODQ4LDBsOC43OTQsNS4wODJjMC41NywwLjMyOSwwLjkyNCwwLjk0NCwwLjkyNCwxLjYwMyB2MTAuMTVjMCwwLjY1OS0wLjM1NCwxLjI3My0wLjkyNCwxLjYwNGwtOC43OTQsNS4wNzhDMTIuNjQzLDIzLjkxNiwxMi4zMjQsMjQsMTEuOTk4LDI0eiBNMTkuMDk5LDEzLjk5MyBjMC0xLjktMS4yODQtMi40MDYtMy45ODctMi43NjNjLTIuNzMxLTAuMzYxLTMuMDA5LTAuNTQ4LTMuMDA5LTEuMTg3YzAtMC41MjgsMC4yMzUtMS4yMzMsMi4yNTgtMS4yMzMgYzEuODA3LDAsMi40NzMsMC4zODksMi43NDcsMS42MDdjMC4wMjQsMC4xMTUsMC4xMjksMC4xOTksMC4yNDcsMC4xOTloMS4xNDFjMC4wNzEsMCwwLjEzOC0wLjAzMSwwLjE4Ni0wLjA4MSBjMC4wNDgtMC4wNTQsMC4wNzQtMC4xMjMsMC4wNjctMC4xOTZjLTAuMTc3LTIuMDk4LTEuNTcxLTMuMDc2LTQuMzg4LTMuMDc2Yy0yLjUwOCwwLTQuMDA0LDEuMDU4LTQuMDA0LDIuODMzIGMwLDEuOTI1LDEuNDg4LDIuNDU3LDMuODk1LDIuNjk1YzIuODgsMC4yODIsMy4xMDMsMC43MDMsMy4xMDMsMS4yNjljMCwwLjk4My0wLjc4OSwxLjQwMi0yLjY0MiwxLjQwMiBjLTIuMzI3LDAtMi44MzktMC41ODQtMy4wMTEtMS43NDJjLTAuMDItMC4xMjQtMC4xMjYtMC4yMTUtMC4yNTMtMC4yMTVoLTEuMTM3Yy0wLjE0MSwwLTAuMjU0LDAuMTEyLTAuMjU0LDAuMjUzIGMwLDEuNDgyLDAuODA2LDMuMjQ4LDQuNjU1LDMuMjQ4QzE3LjUwMSwxNy4wMDcsMTkuMDk5LDE1LjkxLDE5LjA5OSwxMy45OTN6Ii8+PC9zdmc+");
+  --icon-java: url("data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+SmF2YTwvdGl0bGU+PHBhdGggZD0iTTguODUxIDE4LjU2cy0uOTE3LjUzNC42NTMuNzE0YzEuOTAyLjIxOCAyLjg3NC4xODcgNC45NjktLjIxMSAwIDAgLjU1Mi4zNDYgMS4zMjEuNjQ2LTQuNjk5IDIuMDEzLTEwLjYzMy0uMTE4LTYuOTQzLTEuMTQ5TTguMjc2IDE1LjkzM3MtMS4wMjguNzYxLjU0Mi45MjRjMi4wMzIuMjA5IDMuNjM2LjIyNyA2LjQxMy0uMzA4IDAgMCAuMzg0LjM4OS45ODcuNjAyLTUuNjc5IDEuNjYxLTEyLjAwNy4xMy03Ljk0Mi0xLjIxOE0xMy4xMTYgMTEuNDc1YzEuMTU4IDEuMzMzLS4zMDQgMi41MzMtLjMwNCAyLjUzM3MyLjkzOS0xLjUxOCAxLjU4OS0zLjQxOGMtMS4yNjEtMS43NzItMi4yMjgtMi42NTIgMy4wMDctNS42ODggMC0uMDAxLTguMjE2IDIuMDUxLTQuMjkyIDYuNTczTTE5LjMzIDIwLjUwNHMuNjc5LjU1OS0uNzQ3Ljk5MWMtMi43MTIuODIyLTExLjI4OCAxLjA2OS0xMy42NjkuMDMzLS44NTYtLjM3My43NS0uODkgMS4yNTQtLjk5OC41MjctLjExNC44MjgtLjA5My44MjgtLjA5My0uOTUzLS42NzEtNi4xNTYgMS4zMTctMi42NDMgMS44ODcgOS41OCAxLjU1MyAxNy40NjItLjcgMTQuOTc3LTEuODJNOS4yOTIgMTMuMjFzLTQuMzYyIDEuMDM2LTEuNTQ0IDEuNDEyYzEuMTg5LjE1OSAzLjU2MS4xMjMgNS43Ny0uMDYyIDEuODA2LS4xNTIgMy42MTgtLjQ3NyAzLjYxOC0uNDc3cy0uNjM3LjI3Mi0xLjA5OC41ODdjLTQuNDI5IDEuMTY1LTEyLjk4Ni42MjMtMTAuNTIyLS41NjggMi4wODItMS4wMDYgMy43NzYtLjg5MiAzLjc3Ni0uODkyTTE3LjExNiAxNy41ODRjNC41MDMtMi4zNCAyLjQyMS00LjU4OS45NjgtNC4yODUtLjM1NS4wNzQtLjUxNS4xMzgtLjUxNS4xMzhzLjEzMi0uMjA3LjM4NS0uMjk3YzIuODc1LTEuMDExIDUuMDg2IDIuOTgxLS45MjggNC41NjIgMC0uMDAxLjA3LS4wNjIuMDktLjExOE0xNC40MDEgMHMyLjQ5NCAyLjQ5NC0yLjM2NSA2LjMzYy0zLjg5NiAzLjA3Ny0uODg4IDQuODMyLS4wMDEgNi44MzYtMi4yNzQtMi4wNTMtMy45NDMtMy44NTgtMi44MjQtNS41MzkgMS42NDQtMi40NjkgNi4xOTctMy42NjUgNS4xOS03LjYyN005LjczNCAyMy45MjRjNC4zMjIuMjc3IDEwLjk1OS0uMTUzIDExLjExNi0yLjE5OCAwIDAtLjMwMi43NzUtMy41NzIgMS4zOTEtMy42ODguNjk0LTguMjM5LjYxMy0xMC45MzcuMTY4IDAtLjAwMS41NTMuNDU3IDMuMzkzLjYzOSIvPjwvc3ZnPg==");
+  --icon-go: url("data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+R288L3RpdGxlPjxwYXRoIGQ9Ik0xLjgxMSAxMC4yMzFjLS4wNDcgMC0uMDU4LS4wMjMtLjAzNS0uMDU5bC4yNDYtLjMxNWMuMDIzLS4wMzUuMDgxLS4wNTguMTI4LS4wNThoNC4xNzJjLjA0NiAwIC4wNTguMDM1LjAzNS4wN2wtLjE5OS4zMDNjLS4wMjMuMDM2LS4wODIuMDctLjExNy4wN3pNLjA0NyAxMS4zMDZjLS4wNDcgMC0uMDU5LS4wMjMtLjAzNS0uMDU4bC4yNDUtLjMxNmMuMDIzLS4wMzUuMDgyLS4wNTguMTI5LS4wNThoNS4zMjhjLjA0NyAwIC4wNy4wMzUuMDU4LjA3bC0uMDkzLjI4Yy0uMDEyLjA0Ny0uMDU4LjA3LS4xMDUuMDd6bTIuODI4IDEuMDc1Yy0uMDQ3IDAtLjA1OS0uMDM1LS4wMzUtLjA3bC4xNjMtLjI5MmMuMDIzLS4wMzUuMDctLjA3LjExNy0uMDdoMi4zMzdjLjA0NyAwIC4wNy4wMzUuMDcuMDgybC0uMDIzLjI4YzAgLjA0Ny0uMDQ3LjA4Mi0uMDgyLjA4MnptMTIuMTI5LTIuMzZjLS43MzYuMTg3LTEuMjM5LjMyNy0xLjk2My41MTQtLjE3Ni4wNDYtLjE4Ny4wNTgtLjM0LS4xMTctLjE3NC0uMTk5LS4zMDMtLjMyNy0uNTQ4LS40NDQtLjczNy0uMzYyLTEuNDUtLjI1Ny0yLjExNS4xNzUtLjc5NS41MTQtMS4yMDQgMS4yNzQtMS4xOTIgMi4yMi4wMTEuOTM1LjY1NCAxLjcwNiAxLjU3NyAxLjgzNS43OTUuMTA1IDEuNDYtLjE3NSAxLjk4Ny0uNzcuMTA1LS4xMy4xOTgtLjI3LjMxNS0uNDM0SDEwLjQ3Yy0uMjQ1IDAtLjMwNC0uMTUyLS4yMjItLjM1LjE1Mi0uMzYyLjQzMi0uOTcuNTk2LTEuMjc0YS4zMTUuMzE1IDAgMDEuMjkyLS4xODdoNC4yNTNjLS4wMjMuMzE2LS4wMjMuNjMxLS4wNy45NDdhNC45ODMgNC45ODMgMCAwMS0uOTU4IDIuMjljLS44NDEgMS4xMS0xLjk0IDEuOC0zLjMzIDEuOTg2LTEuMTQ1LjE1Mi0yLjIwOS0uMDctMy4xNDMtLjc3LS44NjUtLjY1NS0xLjM1Ni0xLjUyLTEuNDg0LTIuNTk1LS4xNTItMS4yNzQuMjIyLTIuNDE5Ljk5My0zLjQyNC44My0xLjA4NiAxLjkyOC0xLjc3NiAzLjI3Mi0yLjAyIDEuMDk4LS4yIDIuMTUtLjA3IDMuMDk2LjU3MS42Mi40MSAxLjA2My45NyAxLjM1NiAxLjY0OC4wNy4xMDUuMDIzLjE2NC0uMTE3LjJtMy44NjggNi40NjFjLTEuMDY0LS4wMjQtMi4wMzQtLjMyOC0yLjg1Mi0xLjAyOWEzLjY2NSAzLjY2NSAwIDAxLTEuMjYyLTIuMjU1Yy0uMjEtMS4zMi4xNTItMi40ODkuOTQ3LTMuNTI5Ljg1My0xLjEyMiAxLjg4MS0xLjcwNiAzLjI3Mi0xLjk1IDEuMTkyLS4yMSAyLjMxNC0uMDk1IDMuMzMuNTk1LjkyMy42MyAxLjQ5NiAxLjQ4NCAxLjY0OCAyLjYwNS4xOTggMS41NzgtLjI1NyAyLjg2My0xLjM0NCAzLjk2Mi0uNzcxLjc4My0xLjcxOCAxLjI3My0yLjgwNSAxLjQ5NS0uMzE1LjA2LS42My4wNy0uOTM0LjEwNnptMi43OC00LjcyYy0uMDExLS4xNTMtLjAxMS0uMjctLjAzNC0uMzg3LS4yMS0xLjE1Ny0xLjI3NC0xLjgxLTIuMzg0LTEuNTU0LTEuMDg3LjI0NS0xLjc4OC45MzUtMi4wNDUgMi4wMzMtLjIxLjkxMi4yMzQgMS44MzUgMS4wNzUgMi4yMS42NDMuMjggMS4yODUuMjQ0IDEuOTA1LS4wNy45MjMtLjQ4IDEuNDI1LTEuMjI4IDEuNDg0LTIuMjMzeiIvPjwvc3ZnPg==");
+  --icon-php: url("data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UEhQPC90aXRsZT48cGF0aCBkPSJNNy4wMSAxMC4yMDdoLS45NDRsLS41MTUgMi42NDhoLjgzOGMuNTU2IDAgLjk3LS4xMDUgMS4yNDItLjMxNC4yNzItLjIxLjQ1NS0uNTU5LjU1LTEuMDQ5LjA5Mi0uNDcuMDUtLjgwMi0uMTI0LS45OTUtLjE3NS0uMTkzLS41MjMtLjI5LTEuMDQ3LS4yOXpNMTIgNS42ODhDNS4zNzMgNS42ODggMCA4LjUxNCAwIDEyczUuMzczIDYuMzEzIDEyIDYuMzEzUzI0IDE1LjQ4NiAyNCAxMmMwLTMuNDg2LTUuMzczLTYuMzEyLTEyLTYuMzEyem0tMy4yNiA3LjQ1MWMtLjI2MS4yNS0uNTc1LjQzOC0uOTE3LjU1MS0uMzM2LjEwOC0uNzY1LjE2NC0xLjI4NS4xNjRINS4zNTdsLS4zMjcgMS42ODFIMy42NTJsMS4yMy02LjMyNmgyLjY1Yy43OTcgMCAxLjM3OC4yMDkgMS43NDQuNjI4LjM2Ni40MTguNDc2IDEuMDAyLjMzIDEuNzUyYTIuODM2IDIuODM2IDAgMCAxLS4zMDUuODQ3Yy0uMTQzLjI1NS0uMzMuNDktLjU2MS43MDN6bTQuMDI0LjcxNWwuNTQzLTIuNzk5Yy4wNjMtLjMxOC4wMzktLjUzNi0uMDY4LS42NTEtLjEwNy0uMTE2LS4zMzYtLjE3NC0uNjg3LS4xNzRIMTEuNDZsLS43MDQgMy42MjVIOS4zODhsMS4yMy02LjMyN2gxLjM2N2wtLjMyNyAxLjY4MmgxLjIxOGMuNzY3IDAgMS4yOTUuMTM0IDEuNTg2LjQwMXMuMzc4LjcuMjYzIDEuMjk5bC0uNTcyIDIuOTQ0aC0xLjM4OXptNy41OTctMi4yNjVhMi43ODIgMi43ODIgMCAwIDEtLjMwNS44NDdjLS4xNDMuMjU1LS4zMy40OS0uNTYxLjcwM2EyLjQ0IDIuNDQgMCAwIDEtLjkxNy41NTFjLS4zMzYuMTA4LS43NjUuMTY0LTEuMjg2LjE2NGgtMS4xOGwtLjMyNyAxLjY4MmgtMS4zNzhsMS4yMy02LjMyNmgyLjY0OWMuNzk3IDAgMS4zNzguMjA5IDEuNzQ0LjYyOC4zNjYuNDE3LjQ3NyAxLjAwMS4zMzEgMS43NTF6TTE3Ljc2NiAxMC4yMDdoLS45NDNsLS41MTYgMi42NDhoLjgzOGMuNTU3IDAgLjk3MS0uMTA1IDEuMjQyLS4zMTQuMjcyLS4yMS40NTUtLjU1OS41NTEtMS4wNDkuMDkyLS40Ny4wNDktLjgwMi0uMTI1LS45OTVzLS41MjQtLjI5LTEuMDQ3LS4yOXoiLz48L3N2Zz4=");
+  --lang-python: #3776ab;
+  --lang-java: #e76f00;
+  --lang-node: #339933;
+  --lang-go: #00add8;
+  --lang-php: #777bb4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10171a;
+    --bg-raised: #161e21;
+    --bg-sunken: #1c2528;
+    --border: #2a3538;
+    --text: #e7ebe9;
+    --text-dim: #8fa19d;
+
+    --accent: #e0a446;
+    --accent-hover: #f0b563;
+    --accent-contrast: #1a1206;
+    --accent-soft: rgba(224, 164, 70, 0.13);
+
+    --ok: #57c79a;
+    --ok-bg: #123024;
+    --warning: #e0b04c;
+    --warning-bg: #302512;
+    --warning-border: #5c481e;
+    --danger: #e7ebe9;
+    --danger-bg: #1c2528;
+    --danger-border: #e7ebe9;
+    --literal: #9db3e0;
+    --link: #e0a446;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 10px 26px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+code, .mono, .timestamp { font-family: var(--font-mono); font-size: 0.85em; }
+
+h1 { font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text); }
+h2 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin: 0 0 0.6rem; }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.hint { color: var(--text-dim); font-size: 0.85em; }
+.sep { color: var(--border); font-weight: 400; }
+.warning {
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-sm);
+  margin: 0 0 1rem;
+}
+.empty-state { color: var(--text-dim); max-width: 60ch; line-height: 1.6; }
+
+/* --- Topbar --- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.6rem 1.25rem;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar .brand { display: flex; align-items: center; gap: 0.55rem; font-weight: 700; color: var(--text); font-size: 1.05rem; }
+.brand-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.topbar .search { flex: 1; max-width: 28rem; }
+.topbar .search input { width: 100%; }
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  /* flex:1 on .search is capped by max-width, so its "grown" space isn't
+     redistributed -- margin-left:auto is what actually pins this to the
+     true right edge of the bar rather than just trailing the search box. */
+  margin-left: auto;
+}
+
+.badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.badge-readonly { background: var(--accent); color: var(--accent-contrast); }
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--link);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+.link-button:hover { text-decoration: underline; }
+
+/* User menu: username trigger in the topbar, "Change password" and
+   "Log out" reveal below it on hover (or keyboard focus, via
+   :focus-within) instead of sitting as two separate always-visible
+   controls. The panel stays in the DOM (not display:none) so Tab can
+   still reach its two real controls -- only opacity/visibility hide it,
+   which keeps focus-driven reveal working for keyboard users too. */
+.user-menu { position: relative; }
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  padding: 0.3rem 0.1rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.user-menu-trigger .caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-dim);
+}
+.user-menu-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 170px;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+  z-index: 20;
+}
+.user-menu:hover .user-menu-panel,
+.user-menu:focus-within .user-menu-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.user-menu-panel a, .user-menu-panel button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.user-menu-panel a:hover, .user-menu-panel button:hover { background: var(--bg-sunken); text-decoration: none; }
+
+/* --- Layout --- */
+
+.layout {
+  display: flex;
+  flex: 1 0 auto;
+}
+
+.sidebar {
+  width: 224px;
+  flex: none;
+  border-right: 1px solid var(--border);
+  padding: 1.25rem 1rem;
+  background: var(--bg-raised);
+}
+.sidebar-section { margin-bottom: 1.75rem; }
+.db-list, .ns-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+.db-list li, .ns-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid transparent;
+}
+.db-list li:hover, .ns-list li:hover { background: var(--bg-sunken); }
+.db-list li.active, .ns-list li.active { background: var(--bg-sunken); border-left-color: var(--accent); font-weight: 700; }
+.db-list li.active a, .ns-list li.active a { color: var(--accent); }
+.db-list a, .ns-list a { color: var(--text); display: block; flex: 1; }
+.ns-list .count {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 1.5rem 1.75rem;
+}
+
+/* --- Tables --- */
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.data-table th, .data-table td {
+  padding: 0.5rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  color: var(--text);
+}
+.data-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-sunken);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  border-bottom: 2px solid var(--border);
+}
+.data-table th a { color: inherit; }
+.data-table th a:hover { color: var(--accent); text-decoration: none; }
+.data-table tbody tr:nth-child(even) { background: var(--bg-sunken); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--accent-soft); }
+.data-table tbody tr.selected { background: var(--accent-soft); }
+.data-table tr[data-key-row] { cursor: pointer; }
+.data-table td.num { text-align: right; }
+.data-table tr.row-unhealthy { background: var(--warning-bg); }
+.data-table tr.row-error { background: var(--danger-bg); }
+.data-table tr.row-unhealthy td, .data-table tr.row-error td { color: var(--text); }
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.9rem 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+/* --- Pills --- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.pill-ok { background: var(--ok-bg); color: var(--ok); }
+.pill-warning { background: var(--warning-bg); color: var(--warning); }
+.pill-error { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+
+/* --- Forms --- */
+
+.filter-form { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+.filter-form input[type="search"] { flex: 1; max-width: 28rem; }
+
+input, textarea, select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+
+/* Buttons: one clear shape everywhere -- a plain bordered "default" button,
+   a solid-gold "primary" for the single <button type=submit> a form
+   normally has, and a bold ink-outlined "danger" for destructive actions
+   (no red -- severity comes from weight and the solid-fill hover, not a
+   hue). Every state (hover/active/disabled) is defined once here so no
+   button on any page can end up inconsistent. */
+button {
+  font: inherit;
+  cursor: pointer;
+  background: var(--bg-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+}
+button:hover { background: var(--bg-sunken); border-color: var(--text-dim); }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+button[type="submit"]:not(.danger):not(.logout-button) {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+button[type="submit"]:not(.danger):not(.logout-button):hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* Logout: a small, clearly-clickable outline pill in the topbar -- not a
+   bare text link (easy to miss) and not gold-filled like a primary submit
+   (logging out isn't the page's main action). Fills solid on hover so it
+   still feels like a real button, not text pretending to be one. */
+.logout-button {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-dim);
+}
+.logout-button:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+button.danger {
+  background: var(--bg-raised);
+  color: var(--danger);
+  border: 1.5px solid var(--danger-border);
+}
+button.danger:hover { background: var(--danger); color: var(--bg-raised); border-color: var(--danger); }
+
+.inline-form { display: inline-flex; gap: 0.6rem; align-items: center; }
+.action-row { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+
+.danger-zone {
+  margin-top: 2rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.refresh-toggle { font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; gap: 0.4rem; }
+
+/* --- Value viewer --- */
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1.5rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+}
+.meta-grid dt { color: var(--text-dim); }
+.meta-grid dd { margin: 0; color: var(--text); }
+
+.value-reveal summary { cursor: pointer; font-weight: 700; color: var(--link); margin-bottom: 0.6rem; }
+.plain-value, .json-value {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+.masked-notice, .non-portable-notice {
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 0.9rem 1rem;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* JSON tree (built by static/jsonview.js) */
+.json-tree { font-family: var(--font-mono); color: var(--text); }
+.json-tree .json-key { color: var(--link); }
+.json-tree .json-string { color: var(--ok); }
+.json-tree .json-number { color: var(--warning); }
+.json-tree .json-literal { color: var(--literal); }
+.json-tree details { margin-left: 1.1rem; }
+.json-tree summary { cursor: pointer; }
+
+/* --- Login / change-password --- */
+
+/* Faint Python/Java/Node/Go/PHP marks scattered behind the login card --
+   every language lytecache-go supports, using the same icon assets and
+   brand colors docs/index.html uses, just enlarged and masked down to
+   near-invisible so the plain white page has some texture without
+   competing with the form. Fixed + its own stacking context so it can
+   never paint over .login-box regardless of DOM order. */
+.login-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.login-backdrop .glyph-bg {
+  position: absolute;
+  background-color: currentColor;
+  opacity: 0.07;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+}
+.login-backdrop .glyph-python {
+  width: 250px; height: 250px;
+  top: -45px; left: -55px;
+  transform: rotate(-14deg);
+  color: var(--lang-python);
+  mask-image: var(--icon-python); -webkit-mask-image: var(--icon-python);
+}
+.login-backdrop .glyph-java {
+  width: 220px; height: 220px;
+  bottom: -55px; right: 6%;
+  transform: rotate(11deg);
+  color: var(--lang-java);
+  mask-image: var(--icon-java); -webkit-mask-image: var(--icon-java);
+}
+.login-backdrop .glyph-node {
+  width: 200px; height: 200px;
+  top: 12%; right: -55px;
+  transform: rotate(-9deg);
+  color: var(--lang-node);
+  mask-image: var(--icon-node); -webkit-mask-image: var(--icon-node);
+}
+.login-backdrop .glyph-go {
+  width: 210px; height: 210px;
+  bottom: 6%; left: -50px;
+  transform: rotate(9deg);
+  color: var(--lang-go);
+  mask-image: var(--icon-go); -webkit-mask-image: var(--icon-go);
+}
+.login-backdrop .glyph-php {
+  width: 190px; height: 190px;
+  top: -40px; right: 20%;
+  transform: rotate(-8deg);
+  color: var(--lang-php);
+  mask-image: var(--icon-php); -webkit-mask-image: var(--icon-php);
+}
+@media (prefers-color-scheme: dark) {
+  .login-backdrop .glyph-bg { opacity: 0.14; }
+}
+@media (max-width: 640px) {
+  .login-backdrop .glyph-bg { display: none; }
+}
+
+.login-box {
+  position: relative;
+  z-index: 1;
+  max-width: 22rem;
+  margin: 4.5rem auto;
+  padding: 2rem 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+.login-mark {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.login-box h1 { margin-bottom: 1.25rem; font-size: 1.3rem; }
+.login-box form { display: flex; flex-direction: column; gap: 0.9rem; text-align: left; }
+.login-box label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; color: var(--text-dim); }
+.login-box .warning { text-align: left; }
+.login-box p { font-size: 0.85rem; color: var(--text-dim); }
+.login-box p a { color: var(--link); }
+.login-box button[type="submit"] { width: 100%; }
+
+/* --- Footer --- */
+
+.site-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 1rem 1.75rem;
+  background: var(--bg-raised);
+}
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.footer-inner a { color: var(--text-dim); font-weight: 700; }
+.footer-inner a:hover { color: var(--accent); text-decoration: none; }
+.footer-brand a { color: var(--accent); }
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+}

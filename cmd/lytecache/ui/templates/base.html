@@ -1,0 +1,95 @@
+{{define "base.html"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}Lytecache{{end}}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%225%22%20fill%3D%22%2396591a%22/%3E%3Ctext%20x%3D%2216%22%20y%3D%2223%22%20font-family%3D%22ui-monospace%2CMenlo%2CConsolas%2Cmonospace%22%20font-size%3D%2219%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3E%CE%BB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body{{if .RefreshSeconds}} data-refresh-seconds="{{.RefreshSeconds}}"{{end}}>
+{{if not .Username}}
+<div class="login-backdrop" aria-hidden="true">
+  <span class="glyph-bg glyph-python"></span>
+  <span class="glyph-bg glyph-java"></span>
+  <span class="glyph-bg glyph-node"></span>
+  <span class="glyph-bg glyph-go"></span>
+  <span class="glyph-bg glyph-php"></span>
+</div>
+{{end}}
+<header class="topbar">
+  <a class="brand" href="/dashboard"><span class="brand-mark" aria-hidden="true">&lambda;</span>Lytecache</a>
+  {{if .Username}}
+  <form class="search" action="/search" method="get">
+    <input type="search" name="q" id="global-search" placeholder="/ to search all databases" autocomplete="off">
+  </form>
+  {{end}}
+  <div class="topbar-status">
+    {{if .Username}}
+    {{if not .AllowDelete}}<span class="badge badge-readonly" title="Start with --allow-delete to enable delete/flush/maintain">read-only</span>{{end}}
+    <div class="user-menu">
+      <button type="button" class="user-menu-trigger">{{.Username}}<span class="caret" aria-hidden="true"></span></button>
+      <div class="user-menu-panel">
+        <a href="/change-password">Change password</a>
+        <form method="post" action="/logout">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button type="submit">Log out</button>
+        </form>
+      </div>
+    </div>
+    {{end}}
+  </div>
+</header>
+<div class="layout">
+  {{if .Username}}
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h2>Databases</h2>
+      {{if not .Databases}}
+      <p class="hint">None configured. Start with <code>--db name=/path.db</code> or <code>--scan dir</code>.</p>
+      {{else}}
+      <ul class="db-list">
+        {{$current := .CurrentDB}}
+        {{range .Databases}}
+        <li{{if eq . $current}} class="active"{{end}}><a href="/db/{{.}}">{{.}}</a></li>
+        {{end}}
+      </ul>
+      {{end}}
+    </div>
+    {{if .CurrentDB}}
+    <div class="sidebar-section">
+      <h2>Namespaces <span class="hint">in {{.CurrentDB}}</span></h2>
+      <ul class="ns-list">
+        {{$db := .CurrentDB}}{{$ns := .CurrentNS}}
+        {{range .Namespaces}}
+        <li{{if eq .Name $ns}} class="active"{{end}}>
+          <a href="/db/{{$db}}/namespaces/{{.Name}}/keys">{{.Name}}</a>
+          <span class="count">{{.KeyCount}}</span>
+        </li>
+        {{end}}
+      </ul>
+    </div>
+    {{end}}
+  </aside>
+  {{end}}
+  <main class="content">
+  {{block "content" .}}{{end}}
+  </main>
+</div>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-brand">Powered by <a href="https://github.com/lytecache/lytecache" target="_blank" rel="noopener">Lytecache</a></span>
+    <a href="https://lytecache.github.io/lytecache/" target="_blank" rel="noopener">Documentation</a>
+  </div>
+</footer>
+<script src="/static/keys.js"></script>
+<script src="/static/countdown.js"></script>
+<script src="/static/poll.js"></script>
+<script src="/static/jsonview.js"></script>
+</body>
+</html>
+{{end}}
+{{/* Shared brand mark for the standalone login / change-password cards -- defined
+     outside "base.html" (Go templates disallow nested {{define}}), but still
+     part of the same parsed set since both pages combine with this file. */}}
+{{define "brandmark"}}<div class="login-mark" aria-hidden="true">&lambda;</div>{{end}}

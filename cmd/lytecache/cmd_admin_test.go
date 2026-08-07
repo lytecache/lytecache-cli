@@ -10,7 +10,7 @@ import (
 func TestStatsAndInfo(t *testing.T) {
 	db := tempDBPath(t)
 	runCLI(t, "", "--db", db, "set", "k", "v")
-	runCLI(t, "", "--db", db, "get", "k") // one hit
+	runCLI(t, "", "--db", db, "get", "k")       // one hit
 	runCLI(t, "", "--db", db, "get", "missing") // one miss
 
 	for _, cmd := range []string{"stats", "info"} {

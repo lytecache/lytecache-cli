@@ -17,6 +17,33 @@
 #   docker compose run --rm lytecache-cli stats
 #   docker compose run --rm lytecache-cli keys 'session:*'
 #   docker compose run --rm lytecache-cli            # interactive REPL
+#
+# lytecache-ui below is the same image's web admin UI (see docs/ui.md) --
+# `--host 0.0.0.0` is required inside the container for Docker's port
+# publishing/bridge networking to reach it at all (a process bound to
+# 127.0.0.1 in its own network namespace is unreachable from outside that
+# namespace, published port or not); the `ports:` mapping below then
+# re-restricts the HOST side back to 127.0.0.1, so it's reachable from
+# this machine's own browser but nothing else. Binding beyond loopback
+# triggers the UI's exposure guardrails (see docs/ui.md): the default
+# admin/admin password refuses to start outright, hence
+# LYTECACHE_UI_PASSWORD provisioning a real one on first run instead of
+# hitting that wall with no way to log in and fix it; --insecure
+# acknowledges plain HTTP is acceptable here specifically because this
+# traffic never leaves Docker's own private bridge network -- prefer
+# --tls-cert/--tls-key instead if this network is reachable by anything
+# you don't trust.
+#
+# The config volume (ui.yaml -- credentials, session secret) is separate
+# from the cache data volume and just as required: without it, the admin
+# password (and every other UI setting) resets on every container
+# recreation.
+#
+# Usage:
+#   docker compose --profile tools up -d lytecache-ui
+#   open http://127.0.0.1:7070   (or ssh -L 7070:localhost:7070 if this
+#                                  compose file runs on a remote host --
+#                                  see docs/ui.md)
 
 services:
   app:
@@ -34,5 +61,57 @@ services:
     volumes:
       - lytecache-data:/var/cache/lytecache
 
+  lytecache-ui:
+    image: ghcr.io/lytecache/lytecache:latest
+    profiles: ["tools"]
+    command: ["ui", "--host", "0.0.0.0", "--port", "7070", "--allow-delete", "--insecure"]
+    environment:
+      LYTECACHE_PATH: /var/cache/lytecache/cache.db
+      LYTECACHE_UI_PASSWORD: ${LYTECACHE_UI_PASSWORD:?set a real admin password (e.g. in a .env file) before exposing the UI beyond localhost}
+    volumes:
+      - lytecache-data:/var/cache/lytecache
+      - lytecache-ui-config:/home/lytecache/.config/lytecache
+    ports:
+      - "127.0.0.1:7070:7070"
+
+  # Fleet view across several services' caches in one UI instance, entirely
+  # read-only (no --allow-delete). --scan walks ONE directory
+  # non-recursively for *.db files, so this fits a shared-pool layout where
+  # several services write into the SAME volume under distinct filenames
+  # (fleet-app.db, fleet-worker.db, ...) rather than one volume per
+  # service -- mounting several *separate* per-service volumes each at
+  # their own subdirectory wouldn't work here, since --scan wouldn't
+  # recurse into them, and WAL mode needs each db's -wal/-shm siblings
+  # alongside it in the same directory it's actually reading from, so a
+  # single-file-only mount isn't an option either. If your services each
+  # own a genuinely separate volume, use repeatable `--db name=path`
+  # flags instead (one per service, each pointing at its own mounted
+  # path) rather than --scan.
+  fleet-app:
+    build: .
+    environment:
+      LYTECACHE_PATH: /var/cache/lytecache/fleet-app.db
+    volumes:
+      - fleet-data:/var/cache/lytecache
+
+  fleet-worker:
+    build: ./worker
+    environment:
+      LYTECACHE_PATH: /var/cache/lytecache/fleet-worker.db
+    volumes:
+      - fleet-data:/var/cache/lytecache
+
+  lytecache-ui-fleet:
+    image: ghcr.io/lytecache/lytecache:latest
+    profiles: ["tools"]
+    command: ["ui", "--scan", "/scan", "--port", "7070"]
+    volumes:
+      - fleet-data:/scan:ro
+      - lytecache-ui-config:/home/lytecache/.config/lytecache
+    ports:
+      - "127.0.0.1:7070:7070"
+
 volumes:
   lytecache-data:
+  lytecache-ui-config:
+  fleet-data:

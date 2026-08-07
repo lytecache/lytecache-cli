@@ -39,6 +39,12 @@
 # password (and every other UI setting) resets on every container
 # recreation.
 #
+# --no-metrics is here for the same reason as --insecure above: binding
+# beyond loopback with /metrics enabled and no --metrics-token refuses to
+# start outright (same guardrail family as the password one). Drop
+# --no-metrics and add --metrics-token "$(openssl rand -hex 32)" instead
+# if you actually want Prometheus scraping this instance.
+#
 # Usage:
 #   docker compose --profile tools up -d lytecache-ui
 #   open http://127.0.0.1:7070   (or ssh -L 7070:localhost:7070 if this
@@ -64,7 +70,7 @@ services:
   lytecache-ui:
     image: ghcr.io/lytecache/lytecache:latest
     profiles: ["tools"]
-    command: ["ui", "--host", "0.0.0.0", "--port", "7070", "--allow-delete", "--insecure"]
+    command: ["ui", "--host", "0.0.0.0", "--port", "7070", "--allow-delete", "--insecure", "--no-metrics"]
     environment:
       LYTECACHE_PATH: /var/cache/lytecache/cache.db
       LYTECACHE_UI_PASSWORD: ${LYTECACHE_UI_PASSWORD:?set a real admin password (e.g. in a .env file) before exposing the UI beyond localhost}
@@ -101,13 +107,21 @@ services:
     volumes:
       - fleet-data:/var/cache/lytecache
 
+  # A separate example from lytecache-ui above -- both bind :7070, so these
+  # two are alternatives to try independently, not services meant to run
+  # at the same time. Deliberately does NOT share lytecache-ui-config with
+  # lytecache-ui: they're unrelated scenarios (single app vs. fleet view),
+  # and sharing one ui.yaml between them would mean whichever happens to
+  # start first silently decides the shared login for both.
   lytecache-ui-fleet:
     image: ghcr.io/lytecache/lytecache:latest
     profiles: ["tools"]
-    command: ["ui", "--scan", "/scan", "--port", "7070"]
+    command: ["ui", "--host", "0.0.0.0", "--scan", "/scan", "--port", "7070", "--insecure", "--no-metrics"]
+    environment:
+      LYTECACHE_UI_PASSWORD: ${LYTECACHE_UI_PASSWORD:?set a real admin password (e.g. in a .env file) before exposing the UI beyond localhost}
     volumes:
       - fleet-data:/scan:ro
-      - lytecache-ui-config:/home/lytecache/.config/lytecache
+      - lytecache-ui-fleet-config:/home/lytecache/.config/lytecache
     ports:
       - "127.0.0.1:7070:7070"
 
@@ -115,3 +129,4 @@ volumes:
   lytecache-data:
   lytecache-ui-config:
   fleet-data:
+  lytecache-ui-fleet-config:

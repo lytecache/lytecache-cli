@@ -10,8 +10,22 @@ import "errors"
 // its own build-tagged files.
 var ErrNotWindows = errors.New("service: scheduled tasks are a Windows-only fallback")
 
+// InstallScheduledTask always returns ErrNotWindows outside Windows; see
+// scheduledtask_windows.go for the real implementation.
 func InstallScheduledTask(_ string, _ []string) error { return ErrNotWindows }
-func UninstallScheduledTask(_ string) error           { return ErrNotWindows }
-func StartScheduledTask(_ string) error               { return ErrNotWindows }
-func StopScheduledTask(_ string) error                { return ErrNotWindows }
-func ScheduledTaskStatus(_ string) (bool, error)      { return false, ErrNotWindows }
+
+// UninstallScheduledTask always returns ErrNotWindows outside Windows; see
+// scheduledtask_windows.go for the real implementation.
+func UninstallScheduledTask(_ string) error { return ErrNotWindows }
+
+// StartScheduledTask always returns ErrNotWindows outside Windows; see
+// scheduledtask_windows.go for the real implementation.
+func StartScheduledTask(_ string) error { return ErrNotWindows }
+
+// StopScheduledTask always returns ErrNotWindows outside Windows; see
+// scheduledtask_windows.go for the real implementation.
+func StopScheduledTask(_ string) error { return ErrNotWindows }
+
+// ScheduledTaskStatus always returns ErrNotWindows outside Windows; see
+// scheduledtask_windows.go for the real implementation.
+func ScheduledTaskStatus(_ string) (bool, error) { return false, ErrNotWindows }

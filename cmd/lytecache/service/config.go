@@ -23,8 +23,12 @@ import (
 // orphan a previous install rather than replace it.
 const Name = "lytecache-ui"
 
+// DisplayName is the human-readable name shown by the OS service manager
+// (e.g. `systemctl status`, launchd's label in Activity Monitor).
 const DisplayName = "lytecache UI"
 
+// Description is the short description the OS service manager stores
+// alongside the service registration.
 const Description = "Local web administration UI for lytecache database files (not a cache server)."
 
 // BuildConfig builds the kardianos/service.Config for the lytecache-ui

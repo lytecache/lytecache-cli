@@ -126,7 +126,7 @@ func (c *metricsCollector) metrics() []prometheus.Metric {
 // its own doc comment) -- a scrape must never perturb the cache it's
 // reading.
 func (c *metricsCollector) collectDatabase(name string) []prometheus.Metric {
-	e, ok := c.mgr.Entry(name)
+	e, ok := c.mgr.entry(name)
 	if !ok {
 		return nil
 	}

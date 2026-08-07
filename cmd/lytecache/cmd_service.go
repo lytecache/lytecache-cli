@@ -372,7 +372,7 @@ func tailLines(data []byte, n int) []byte {
 // kardianos/service's Program, so control (start/stop/restart) flows
 // through the OS's own service lifecycle instead of a second, divergent
 // implementation.
-func runUIUnderServiceManager(cmd *cobra.Command, opts uiRunOptions) error {
+func runUIUnderServiceManager(_ *cobra.Command, opts uiRunOptions) error {
 	logPath, err := service.LogPath()
 	if err != nil {
 		return databaseError(err)

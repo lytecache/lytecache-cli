@@ -49,7 +49,7 @@ func (s *Server) dbPage(r *http.Request, dbName, ns string) Page {
 	p.CurrentDB = dbName
 	p.CurrentNS = ns
 
-	e, ok := s.mgr.Entry(dbName)
+	e, ok := s.mgr.entry(dbName)
 	if !ok {
 		return p
 	}

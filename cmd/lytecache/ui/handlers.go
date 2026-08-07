@@ -22,7 +22,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDBRedirect(w http.ResponseWriter, r *http.Request) {
 	dbName := r.PathValue("db")
-	if _, ok := s.mgr.Entry(dbName); !ok {
+	if _, ok := s.mgr.entry(dbName); !ok {
 		s.writeNotFound(w, r, "unknown database "+dbName)
 		return
 	}
@@ -94,7 +94,7 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) resolveEntry(w http.ResponseWriter, r *http.Request) (db, ns string, ok bool) {
 	db = r.PathValue("db")
 	ns = r.PathValue("ns")
-	if _, exists := s.mgr.Entry(db); !exists {
+	if _, exists := s.mgr.entry(db); !exists {
 		s.writeNotFound(w, r, "unknown database "+db)
 		return "", "", false
 	}
@@ -102,7 +102,7 @@ func (s *Server) resolveEntry(w http.ResponseWriter, r *http.Request) (db, ns st
 }
 
 func entryCache(s *Server, db, ns string) (*lytecache.Cache, error) {
-	e, _ := s.mgr.Entry(db)
+	e, _ := s.mgr.entry(db)
 	return e.Cache(ns)
 }
 

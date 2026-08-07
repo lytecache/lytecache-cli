@@ -130,6 +130,7 @@ func (w *RotatingWriter) rotateLocked() error {
 	return nil
 }
 
+// Close closes the underlying log file.
 func (w *RotatingWriter) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()

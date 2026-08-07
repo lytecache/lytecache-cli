@@ -62,7 +62,7 @@ func TestManagerDegradesMissingFileWithoutCreatingIt(t *testing.T) {
 	mgr := NewManager([]DBSource{{Name: "missing", Path: path}})
 	mgr.WarmUp(func(string, ...any) {})
 
-	e, _ := mgr.Entry("missing")
+	e, _ := mgr.entry("missing")
 	if _, err := e.Cache("default"); err == nil {
 		t.Fatal("expected an error opening a missing database, got nil")
 	}
@@ -74,7 +74,7 @@ func TestManagerDegradesMissingFileWithoutCreatingIt(t *testing.T) {
 func TestManagerSelfHealsOnceFileAppears(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "appears-later.db")
 	mgr := NewManager([]DBSource{{Name: "later", Path: path}})
-	e, _ := mgr.Entry("later")
+	e, _ := mgr.entry("later")
 
 	if _, err := e.Cache("default"); err == nil {
 		t.Fatal("expected an error before the file exists")
@@ -104,7 +104,7 @@ func TestManagerReturnsSameCacheAcrossCalls(t *testing.T) {
 	}
 
 	mgr := NewManager([]DBSource{{Name: "a", Path: path}})
-	e, _ := mgr.Entry("a")
+	e, _ := mgr.entry("a")
 
 	c1, err := e.Cache("default")
 	if err != nil {

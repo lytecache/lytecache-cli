@@ -31,10 +31,14 @@ type Program struct {
 	ShutdownTimeout time.Duration
 }
 
+// Start implements kservice.Interface. It must not block, per
+// kardianos/service's contract, so it just delegates to StartFunc.
 func (p *Program) Start(_ kservice.Service) error {
 	return p.StartFunc()
 }
 
+// Stop implements kservice.Interface, calling StopFunc with a
+// context bounded by ShutdownTimeout (or DefaultShutdownTimeout).
 func (p *Program) Stop(_ kservice.Service) error {
 	timeout := p.ShutdownTimeout
 	if timeout <= 0 {

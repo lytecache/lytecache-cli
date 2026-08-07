@@ -170,8 +170,11 @@ func (m *Manager) Names() []string {
 	return names
 }
 
-// Entry looks up a configured database by name.
-func (m *Manager) Entry(name string) (*dbEntry, bool) {
+// entry looks up a configured database by name. Unexported (and returning
+// the unexported *dbEntry) since every caller is inside this package --
+// handlers.go/pages.go/metrics.go/viewmodel.go all call it directly, never
+// from package main.
+func (m *Manager) entry(name string) (*dbEntry, bool) {
 	e, ok := m.byName[name]
 	return e, ok
 }

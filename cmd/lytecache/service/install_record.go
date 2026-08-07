@@ -18,6 +18,7 @@ import (
 // create.
 type Method string
 
+// The two Method values a `service install` can record.
 const (
 	MethodOSService     Method = "os-service"
 	MethodScheduledTask Method = "scheduled-task"
@@ -61,6 +62,8 @@ func ReadInstallRecord() (Method, error) {
 	return Method(data), nil
 }
 
+// RemoveInstallRecord deletes the persisted Method, if any. Called by
+// `service uninstall` so a later reinstall doesn't inherit a stale record.
 func RemoveInstallRecord() error {
 	path, err := installRecordPath()
 	if err != nil {

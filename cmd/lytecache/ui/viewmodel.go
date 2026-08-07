@@ -39,6 +39,8 @@ type DashboardRow struct {
 	UnhealthyWhy []string
 }
 
+// MaxBytesDisplay renders MaxBytes for the dashboard table, or "unlimited"
+// when no cap was declared.
 func (r DashboardRow) MaxBytesDisplay() string {
 	if r.MaxBytes == nil {
 		return "unlimited"
@@ -46,6 +48,8 @@ func (r DashboardRow) MaxBytesDisplay() string {
 	return strconv.FormatInt(*r.MaxBytes, 10)
 }
 
+// MaxKeysDisplay renders MaxKeys for the dashboard table, or "unlimited"
+// when no cap was declared.
 func (r DashboardRow) MaxKeysDisplay() string {
 	if r.MaxKeys == nil {
 		return "unlimited"
@@ -53,6 +57,8 @@ func (r DashboardRow) MaxKeysDisplay() string {
 	return strconv.FormatInt(*r.MaxKeys, 10)
 }
 
+// HitRatePercent renders HitRate as a percentage string for the dashboard
+// table.
 func (r DashboardRow) HitRatePercent() string {
 	return fmt.Sprintf("%.1f%%", r.HitRate*100)
 }
@@ -81,7 +87,7 @@ func BuildDashboard(mgr *Manager) []DashboardRow {
 }
 
 func buildDashboardRow(mgr *Manager, name string) DashboardRow {
-	e, _ := mgr.Entry(name)
+	e, _ := mgr.entry(name)
 	row := DashboardRow{Name: name, Path: e.Path}
 
 	c, err := e.Cache("default")
@@ -170,6 +176,9 @@ type KeyRow struct {
 	LastAccessed time.Time
 }
 
+// TTLDisplay renders a snapshot-at-render-time TTL string ("-", "expired",
+// or a duration) for the key browser table; static/countdown.js takes over
+// from ExpiresAt client-side once the page has loaded.
 func (r KeyRow) TTLDisplay() string {
 	if r.TTLRemaining == nil {
 		return "-"
@@ -387,6 +396,8 @@ type ValueView struct {
 	ExpiresAt    *time.Time // see KeyRow.ExpiresAt's doc comment
 }
 
+// TTLDisplay renders a snapshot-at-render-time TTL string ("-", "expired",
+// or a duration), same convention as KeyRow.TTLDisplay.
 func (v ValueView) TTLDisplay() string {
 	if v.TTLRemaining == nil {
 		return "-"
@@ -397,6 +408,8 @@ func (v ValueView) TTLDisplay() string {
 	return v.TTLRemaining.Round(time.Second).String()
 }
 
+// ExpiresAtRFC3339 renders ExpiresAt for the template's
+// data-expires-at attribute, which static/countdown.js parses client-side.
 func (v ValueView) ExpiresAtRFC3339() string {
 	if v.ExpiresAt == nil {
 		return ""
@@ -498,7 +511,7 @@ func BuildSearch(mgr *Manager, pattern string) SearchView {
 		if view.Truncated {
 			break
 		}
-		e, _ := mgr.Entry(name)
+		e, _ := mgr.entry(name)
 		dc, err := e.Cache("default")
 		if err != nil {
 			view.Errors = append(view.Errors, fmt.Sprintf("%s: %v", name, err))

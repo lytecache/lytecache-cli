@@ -151,7 +151,7 @@ func CheckConfigPermissions(path string) error {
 	if err != nil {
 		return fmt.Errorf("checking %s: %w", path, err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	if checkNotGroupOrWorldAccessible(info) {
 		return fmt.Errorf("%s is group- or world-accessible (mode %04o) -- refusing to start; fix it with: chmod %04o %s",
 			path, info.Mode().Perm(), configFileMode, path)
 	}

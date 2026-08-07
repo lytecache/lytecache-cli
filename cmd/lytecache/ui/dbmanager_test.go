@@ -74,6 +74,7 @@ func TestManagerDegradesMissingFileWithoutCreatingIt(t *testing.T) {
 func TestManagerSelfHealsOnceFileAppears(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "appears-later.db")
 	mgr := NewManager([]DBSource{{Name: "later", Path: path}})
+	t.Cleanup(func() { _ = mgr.Close() })
 	e, _ := mgr.entry("later")
 
 	if _, err := e.Cache("default"); err == nil {

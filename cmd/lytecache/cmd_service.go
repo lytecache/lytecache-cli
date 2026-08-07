@@ -29,6 +29,9 @@ func newServiceCmd() *cobra.Command {
 			"operating system (launchd on macOS, systemd on Linux, the Service Control\n" +
 			"Manager on Windows) -- so it survives logout and restarts on boot, the same\n" +
 			"experience as `brew services start redis` or `systemctl enable redis`.",
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			return checkNotRootOnDarwin(cmd)
+		},
 	}
 	cmd.AddCommand(
 		newServiceInstallCmd(),
@@ -40,6 +43,38 @@ func newServiceCmd() *cobra.Command {
 		newServiceLogsCmd(),
 	)
 	return cmd
+}
+
+// checkNotRootOnDarwin rejects `lytecache service ...` under sudo/root on
+// macOS before ever shelling out to launchctl. Unlike Linux (--system
+// installs a real system-wide systemd unit that legitimately needs root),
+// this tool has no system-daemon path on macOS at all -- describeInstallScope
+// always reports "user LaunchAgent" there, no --system flag is even
+// registered (see newServiceInstallCmd). Running as root against a
+// LaunchAgent path produces a confusing raw launchctl error ("Expecting a
+// LaunchDaemons path since the command was run as root. Got LaunchAgents
+// instead.") instead of failing loudly with an actionable message, which
+// the "fail loudly on bad permissions" design goal calls for.
+func checkNotRootOnDarwin(cmd *cobra.Command) error {
+	return checkNotRootOnGOOS(runtime.GOOS, os.Geteuid(), cmd.CommandPath())
+}
+
+// checkNotRootOnGOOS is checkNotRootOnDarwin's testable core -- goos/euid
+// are parameters (rather than reading runtime.GOOS/os.Geteuid() directly)
+// so the darwin-specific branch can be exercised by a unit test regardless
+// of which OS actually runs `go test`, matching BuildConfig's
+// GOOS-as-parameter pattern in config.go for the same reason.
+func checkNotRootOnGOOS(goos string, euid int, cmdPath string) error {
+	if goos != "darwin" || euid != 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"`lytecache %s` must not be run with sudo/as root on macOS -- "+
+			"it manages a per-user LaunchAgent under ~/Library/LaunchAgents, "+
+			"which launchd refuses to load when invoked as root "+
+			"(there is no system-wide daemon mode on macOS); re-run this as your normal user",
+		cmdPath[len("lytecache "):],
+	)
 }
 
 func newServiceInstallCmd() *cobra.Command {

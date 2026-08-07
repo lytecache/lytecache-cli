@@ -3,6 +3,7 @@ package ui
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -24,6 +25,12 @@ func TestLoadOrCreateAuthConfigCreatesWith0600(t *testing.T) {
 		t.Error("a freshly bootstrapped config should have the default password")
 	}
 
+	if runtime.GOOS == "windows" {
+		// os.Chmod/os.WriteFile can't express POSIX owner/group/other bits
+		// on Windows -- see permissions_windows.go. Nothing further to
+		// check here.
+		return
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)
@@ -61,6 +68,9 @@ func TestAuthConfigFileNeverContainsPlaintextPassword(t *testing.T) {
 }
 
 func TestLoadOrCreateAuthConfigRefusesLoosePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits aren't enforceable or observable on Windows -- see permissions_windows.go")
+	}
 	dir := t.TempDir()
 	path := filepath.Join(dir, "ui.yaml")
 	if err := os.WriteFile(path, []byte("username: admin\n"), 0o644); err != nil {
@@ -138,6 +148,12 @@ func TestSaveAuthConfigAlwaysWrites0600EvenIfLoosened(t *testing.T) {
 
 	if err := SaveAuthConfig(path, cfg); err != nil {
 		t.Fatal(err)
+	}
+	if runtime.GOOS == "windows" {
+		// os.Chmod/os.WriteFile can't express POSIX owner/group/other bits
+		// on Windows -- see permissions_windows.go. Nothing further to
+		// check here.
+		return
 	}
 	info, err := os.Stat(path)
 	if err != nil {

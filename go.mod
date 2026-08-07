@@ -15,13 +15,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-// Monorepo-only, dropped automatically by the release workflow (see
-// RELEASING.md's "Ordering dependency on lytecache-go"): the ui command
-// added in this version needs Cache.Namespaces/SchemaVersion/Limits and
-// Stats.ExpiredPresent, which only exist in the sibling lytecache-go
-// checkout until v0.3.0 is actually tagged and published.
-replace github.com/lytecache/lytecache-go => ../lytecache-go
-
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

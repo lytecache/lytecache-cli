@@ -290,6 +290,17 @@ func withInstalledService(cmd *cobra.Command, viaOS func(kservice.Service) error
 	if err != nil {
 		return databaseError(err)
 	}
+	// Confirm it's actually installed before asking launchctl/systemd/SCM
+	// to start/stop/restart it -- kardianos/service happily hands back a
+	// Service handle for a label that was never installed, and letting
+	// viaOS reach the OS service manager for one produces a raw, cryptic
+	// error (on macOS: launchctl's "Load failed: 5: Input/output error",
+	// no mention of "not installed" anywhere) instead of the same clear
+	// message `service status` already gives for this exact case.
+	if _, err := svc.Status(); err != nil {
+		return databaseError(fmt.Errorf(
+			"lytecache-ui is not installed -- run `lytecache service install` first (%w)", err))
+	}
 	if err := viaOS(svc); err != nil {
 		return databaseError(err)
 	}

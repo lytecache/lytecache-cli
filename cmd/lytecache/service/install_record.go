@@ -6,6 +6,16 @@ import (
 	"path/filepath"
 )
 
+// ErrNotWindows is returned by every ScheduledTask* function outside
+// Windows -- they exist on every platform purely so cmd_service.go can
+// call them uniformly behind a runtime.GOOS == "windows" guard, without
+// its own build-tagged files. Declared here (no build tag) rather than in
+// scheduledtask_other.go (which is //go:build !windows) because
+// elevation_test.go references it directly and must compile on every OS
+// in the CI matrix, including windows-latest, even though the assertions
+// that use it only run when GOOS != "windows".
+var ErrNotWindows = errors.New("service: scheduled tasks are a Windows-only fallback")
+
 // Method identifies which OS mechanism a `service install` actually used.
 // On macOS/Linux this is always MethodOSService (kardianos/service's
 // launchd/systemd integration always succeeds without elevation, since

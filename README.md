@@ -261,3 +261,6 @@ No *cache* server mode: no wire protocol, nothing an application connects to ove
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
+
+
+<!-- Security scan triggered at 2026-09-05 07:54:01 -->
